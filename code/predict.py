@@ -12,7 +12,7 @@ from sklearn.neighbors import KNeighborsClassifier
 
 
 ## 数据准备
-path = 'E:/PDR/motion-pattern/data/TrainData'
+path = 'D:/motion sense/Motion-pattern-recognition/data/TrainData'
 freq = 25 # 数据采样频率是25Hz
 label_coding = {'stand': 0, 'walk': 1, 'up': 2, 'down': 3}
 feature_num = 8 

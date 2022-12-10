@@ -170,7 +170,7 @@ def slide_window(data, wide, label):
         res_acc = cal_res_acc(win_acc) # 合加速度
         feature = GetFeature(res_acc, win_acc)
         for attr, value in feature.__dict__.items(): 
-            if 'acc' in attr: # unverified!!
+            if '_acc' in attr: # unverified!!
                 continue
             else:
                 win_feature = np.append(win_feature, value) # 组合特征
@@ -178,7 +178,7 @@ def slide_window(data, wide, label):
         if np.isnan(label_feature).sum():
             continue 
         if i == 0:
-            training_set = label_feature.reshape(1, -1)
+            training_set = label_feature
         else:
             training_set = np.concatenate((training_set, label_feature), axis=0)
     for attr, value in feature.__dict__.items(): 
@@ -222,7 +222,7 @@ def creat_testing_set(path):
 
 
 if __name__ == "__main__":
-    path = 'E:/PDR/motion-pattern/data/TrainData'
+    path = 'D:/motion sense/Motion-pattern-recognition/data/TrainData'
     freq = 25 # 数据采样频率是25Hz
     label_coding = {'stand': 0, 'walk': 1, 'up': 2, 'down': 3}
     feature_num = 8 
