@@ -155,15 +155,24 @@ def plot_time_serise(raw_data, smo_data, cwtmatr, frequencies, res_acc, data_typ
     plt.show()
 
 
-def slide_window(data, wide, label):
+def slide_window(data, wide, label, time_label=None, freq=25, startidx=75):
     '''
     给data加窗,并提取每个窗口的特征值组建训练集,此处为不重叠滑动窗口
-    input: data: ndarry(2-Dim);
+    input: For building training set:
+           data: ndarry(2-Dim);
            wide: 窗口宽度(int)
-    output: features ndarry(2-Dim)
+           label: 训练集数据标签(int)
+           For building testing set:
+           time_label: 测试集时间序列标签(object)
+           freq: 采样频率
+           startidx: 数据分析的起始下标
+    output: features->ndarry(2-Dim)
+            featurn_name->ndarry(1-Dim)
     '''
     n = data.shape[0]
     feature_name = np.zeros((0))
+    if time_label is not None:
+        m, j = time_label.shape[0], 0
     for i in range(0, n, wide):
         win_feature = np.zeros((0)) # 一个窗口内的特征
         win_acc = data[i:i+wide, :] # 三轴加速度
@@ -174,19 +183,35 @@ def slide_window(data, wide, label):
                 continue
             else:
                 win_feature = np.append(win_feature, value) # 组合特征
-        label_feature = np.append(win_feature, label).reshape(1, -1) # 给数据附上标签
+        if type(label) == int:
+            label_feature = np.append(win_feature, label).reshape(1, -1) # 给训练数据附上标签
+        ## 当输入的label是字典, 构建测试集
+        else: 
+            if j < m:
+                part = time_label[j] # 对于测试集中第j段运动模式
+                start, end = int(part[0] * freq) - startidx, int(part[1]*freq) - startidx
+                label_code = label[part[2]]
+                if i >= start and i+wide <= end:
+                    label_feature = np.append(win_feature, label_code).reshape(1, -1)
+                    if i+wide == end:
+                        j += 1
+                elif i >= start and i+wide > end:
+                    label_feature = np.append(win_feature, -1).reshape(1, -1) # 如果窗口处于运动状态转换处，标记为-1
+                    j += 1
+                    
+                
         if np.isnan(label_feature).sum():
             continue 
         if i == 0:
-            training_set = label_feature
+            dataset = label_feature
         else:
-            training_set = np.concatenate((training_set, label_feature), axis=0)
+            dataset = np.concatenate((dataset, label_feature), axis=0)
     for attr, value in feature.__dict__.items(): 
         if 'acc' in attr: # unverified!!
             continue
         else:
             feature_name = np.append(feature_name, attr)    
-    return training_set, feature_name
+    return dataset, feature_name
             
 
 def creat_training_set(path, label_coding, startidx, wide, training_dimention):
@@ -198,7 +223,7 @@ def creat_training_set(path, label_coding, startidx, wide, training_dimention):
            wide->int: 数据窗宽度
            training_dimention->int: 训练集列数(特征数加标签)
     output: training_set->ndarry: 训练集, 2-Dim
-
+            feature_name->ndarry: 特征名称, 1-Dim
     '''
     training_set = np.zeros((0, training_dimention))
     for state_name in os.listdir(path): # 每个运动状态
@@ -215,24 +240,46 @@ def creat_training_set(path, label_coding, startidx, wide, training_dimention):
         training_set = np.concatenate((training_set, training_for_file), axis=0)
     return training_set, feature_name
 
-def creat_testing_set(path):
-    pass
+def creat_testing_set(exp_path, label_coding, startidx, freq, wide, data_dimention):
+    '''
+    构建测试集
+    input: exp_path->str: 测试集数据路径,需要具体到第几个实验
+           label_coding->dic: 标签与编号映射
+           startidx->int: 从第几个数据开始, 滤除初始化数据
+           wide->int: 数据窗宽度
+           data_dimention->int: 测试集列数(特征数加标签)
+    output: training_set->ndarry: 测试集, 2-Dim
+
+    '''
+    testing_set = np.zeros((0, data_dimention))
+    file_path = exp_path + '/' + 'AccelerometerLinear.csv'
+    time_label_path = exp_path + '/' + 'time.csv'
+    raw_acc = pd.read_csv(file_path).loc[:, 'X':'Z'].values
+    time_label = pd.read_csv(time_label_path).iloc[1:-1, 1:4].values
+    raw_acc = raw_acc[startidx:]
+    smo_acc = smooth_data(raw_acc) # 平滑
+    temp_tesing, feature_name  = slide_window(smo_acc, wide, label_coding, time_label, freq, startidx)
+    testing_set = np.concatenate((testing_set, temp_tesing), axis=0)
+    return testing_set
 
 
 
 
 if __name__ == "__main__":
-    path = 'D:/motion sense/Motion-pattern-recognition/data/TrainData'
+    train_path = 'D:/motion sense/Motion-pattern-recognition/data/TrainData'
+    test_path = 'D:/motion sense/Motion-pattern-recognition/data/TestData/exp1'
     freq = 25 # 数据采样频率是25Hz
     label_coding = {'stand': 0, 'walk': 1, 'up': 2, 'down': 3}
     feature_num = 8 
     training_dimention = feature_num + 1
-    startidx = 70 # 舍掉前70个点
+    startidx = 75 # 舍掉前75个点
     window_wide = int(1.5 * freq) # 滑动窗口宽度
-    training_set, feature_name = creat_training_set(path, label_coding, startidx, window_wide, training_dimention)
+    training_set, feature_name = creat_training_set(train_path, label_coding, startidx, window_wide, training_dimention)
+    test_set = creat_testing_set(test_path, label_coding, startidx, freq, window_wide, training_dimention)
+
     print(training_set.shape)
     print(feature_name)
-
+    print(test_set.shape)
     '''
     ## Here we set parameter to build labeld time-series from dataset of "(A)DeviceMotion_data"
     num_features = 12 # attitude(roll, pitch, yaw); gravity(x, y, z); rotationRate(x, y, z); userAcceleration(x,y,z)

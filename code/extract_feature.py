@@ -57,3 +57,5 @@ class GetFeature():
             k = temp_sum*n*(n+1) / ((n-1)*(n-2)*(n-3)) - \
                 3*(n-1)**2 / ((n-2)*(n-3))
         return k
+    
+    
