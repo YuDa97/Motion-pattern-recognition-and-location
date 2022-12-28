@@ -66,13 +66,29 @@ def cal_res_acc(smo_acc):
         res_acc = np.append(res_acc, res_acc_temp, axis=0)
     return res_acc[:, 0] 
     
-def anomalies_detect(data):
+def anomalies_detect(data, windowWide, showFigure=None):
+    '''
+    突变检测
+    input: data->ndarry
+           windowWide->int
+           showFigure->bool: 是否查看突变检测图像
+    output: anomalies_index: 发生突变的窗口下标索引
+    '''
     data = pd.DataFrame(data)
     data.index = pd.to_datetime(data.index)
-    level_shift_ad = LevelShiftAD(c=6.0, side='both', window=5)
+    level_shift_ad = LevelShiftAD(c=1.05, side='both', window=windowWide)
     anomalies = level_shift_ad.fit_detect(data)
-    plot(data, anomaly=anomalies, anomaly_color="red", anomaly_tag="marker")
-    
+    if showFigure:
+        plot(data, anomaly=anomalies, anomaly_color="red", anomaly_tag="marker")
+        plt.show()
+    n = anomalies.shape[0]
+    window_index, anomalies_index = 0, []
+    for i in range(0, n, windowWide):
+        window_data = anomalies.iloc[i:i+windowWide, 0]
+        if window_data.any():
+            anomalies_index.append(window_index)
+        window_index += 1
+    return  anomalies_index
     
 def plot_time_serise(raw_data, smo_data, cwtmatr, frequencies, res_acc, data_type):
     raw_feature_index = {'acc': raw_data[:, 0:3], 'acclin': raw_data[:, 3:6], 
@@ -173,6 +189,7 @@ def slide_window(data, wide, label, time_label=None, freq=25, startidx=75):
     feature_name = np.zeros((0))
     if time_label is not None:
         m, j = time_label.shape[0], 0
+        flag = 0
     for i in range(0, n, wide):
         win_feature = np.zeros((0)) # 一个窗口内的特征
         win_acc = data[i:i+wide, :] # 三轴加速度
@@ -255,31 +272,43 @@ def creat_testing_set(exp_path, label_coding, startidx, freq, wide, data_dimenti
     file_path = exp_path + '/' + 'AccelerometerLinear.csv'
     time_label_path = exp_path + '/' + 'time.csv'
     raw_acc = pd.read_csv(file_path).loc[:, 'X':'Z'].values
-    time_label = pd.read_csv(time_label_path).iloc[1:-1, 1:4].values
+    time_label = pd.read_csv(time_label_path).iloc[1:, 1:4].values
     raw_acc = raw_acc[startidx:]
     smo_acc = smooth_data(raw_acc) # 平滑
     temp_tesing, feature_name  = slide_window(smo_acc, wide, label_coding, time_label, freq, startidx)
     testing_set = np.concatenate((testing_set, temp_tesing), axis=0)
     return testing_set
 
-
-
+def creat_anomalies_detect_dataset(exp_path):
+    '''
+    创建用于突变点检测的测试集
+    input: test_path->str: 数据集所在路径
+    output: res_acc->ndarry(1-D): 合加速度
+    '''
+    file_path = exp_path + '/' + 'AccelerometerLinear.csv'
+    raw_acc = pd.read_csv(file_path).loc[:, 'X':'Z'].values
+    smo_acc = smooth_data(raw_acc) 
+    res_acc = cal_res_acc(smo_acc)
+    return res_acc
 
 if __name__ == "__main__":
+    
     train_path = 'D:/motion sense/Motion-pattern-recognition/data/TrainData'
     test_path = 'D:/motion sense/Motion-pattern-recognition/data/TestData/exp1'
     freq = 25 # 数据采样频率是25Hz
     label_coding = {'stand': 0, 'walk': 1, 'up': 2, 'down': 3}
-    feature_num = 8 
+    feature_num = 44
     training_dimention = feature_num + 1
     startidx = 75 # 舍掉前75个点
     window_wide = int(1.5 * freq) # 滑动窗口宽度
     training_set, feature_name = creat_training_set(train_path, label_coding, startidx, window_wide, training_dimention)
     test_set = creat_testing_set(test_path, label_coding, startidx, freq, window_wide, training_dimention)
 
+
     print(training_set.shape)
-    print(feature_name)
+    # print(feature_name)
     print(test_set.shape)
+    
     '''
     ## Here we set parameter to build labeld time-series from dataset of "(A)DeviceMotion_data"
     num_features = 12 # attitude(roll, pitch, yaw); gravity(x, y, z); rotationRate(x, y, z); userAcceleration(x,y,z)
@@ -295,10 +324,10 @@ if __name__ == "__main__":
     
 
     ## 运动模式识别demo
-    file_path = 'E:/motion sense/motion-pattern/data/WL2DW0944_0860/motion_data.csv'
+    file_path = 'D:/motion sense/Motion-pattern-recognition/data/WL2DW0944_0860/motion_data.csv'
     raw_data, smo_data = creat_pattern_dataset(file_path)
     res_acc = cal_res_acc(smo_data[:, 0:3]) # 计算合加速度
-    cwtmatr ,frequencies = cwt_data(res_acc[:, 0])
+    cwtmatr ,frequencies = cwt_data(res_acc)
     anomalies_detect(abs(cwtmatr[8]))
     plot_time_serise(raw_data, smo_data, cwtmatr ,frequencies, res_acc, 'acc')
     '''

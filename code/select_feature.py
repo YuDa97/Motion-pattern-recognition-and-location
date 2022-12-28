@@ -6,7 +6,7 @@ from feature_selector import FeatureSelector
 path = 'D:/motion sense/Motion-pattern-recognition/data/TrainData'
 freq = 25 # 数据采样频率是25Hz
 label_coding = {'stand': 0, 'walk': 1, 'up': 2, 'down': 3}
-feature_num = 8 
+feature_num = 44
 training_dimention = feature_num + 1
 startidx = 70 # 舍掉前70个点
 window_wide = int(1.5 * freq) # 滑动窗口宽度

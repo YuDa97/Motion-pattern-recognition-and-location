@@ -10,16 +10,33 @@ from sklearn.svm import SVC
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.neighbors import KNeighborsClassifier
 
+def change_prediction(predictions, anomalies_index):
+    '''
+    对分类器预测结果进行修正
+    input: 
+    predictions->ndarry: 分类器预测结果
+    anomalies_index->list: 发生突变窗口的下标
+    output:
+    correct_predictions->ndarry: 修正后的预测结果
+    '''
+    for index in anomalies_index:
+        pass
 
 ## 数据准备
 train_path = 'D:/motion sense/Motion-pattern-recognition/data/TrainData'
 test_path = 'D:/motion sense/Motion-pattern-recognition/data/TestData/exp1'
 freq = 25 # 数据采样频率是25Hz
 label_coding = {'stand': 0, 'walk': 1, 'up': 2, 'down': 3}
-feature_num = 8 
+feature_num = 44
 training_dimention = feature_num + 1
 startidx = 75 # 舍掉前75个点
 window_wide = int(1.5 * freq) # 滑动窗口宽度
+
+### 对测试集和加速度小波变换后进行频域分析
+test_res_acc = bd.creat_anomalies_detect_dataset(test_path)
+cwtmatr ,frequencies = bd.cwt_data(test_res_acc)
+anomalies_index = bd.anomalies_detect(abs(cwtmatr[8]), window_wide,showFigure=False) # 发生突变的窗口下标
+
 
 train_set, all_feature_name = bd.creat_training_set(train_path, label_coding, startidx, window_wide, training_dimention)
 test_set = bd.creat_testing_set(test_path, label_coding, startidx, freq, window_wide, training_dimention)
