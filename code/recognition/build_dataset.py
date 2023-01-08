@@ -1,7 +1,7 @@
 from cProfile import label
 import numpy as np
 import pandas as pd
-from extract_feature import GetFeature
+from recognition.extract_feature import GetFeature
 import scipy.signal
 import pywt
 import matplotlib.pyplot as plt
@@ -142,8 +142,8 @@ def plot_time_serise(raw_data, smo_data, cwtmatr, frequencies, res_acc, data_typ
     ax=plt.gca()
     ax.set_xlabel('T', fontsize=20)#设置横纵坐标标签
     ax.set_ylabel('Values', fontsize=20)
-    plt.plot(x, res_acc[:, 0], label='res acc values')
-    plt.plot(x, res_acc[:, 1], label='res acc directions')
+    plt.plot(x, res_acc, label='res acc values')
+    # plt.plot(x, res_acc[:, 1], label='res acc directions') # 合加速度方向
     plt.xticks(fontsize=18) #设置坐标轴刻度大小
     plt.yticks(fontsize=18)
     plt.legend()
@@ -292,7 +292,7 @@ def creat_anomalies_detect_dataset(exp_path):
     return res_acc
 
 if __name__ == "__main__":
-    
+    '''
     train_path = 'D:/motion sense/Motion-pattern-recognition/data/TrainData'
     test_path = 'D:/motion sense/Motion-pattern-recognition/data/TestData/exp1'
     freq = 25 # 数据采样频率是25Hz
@@ -303,31 +303,20 @@ if __name__ == "__main__":
     window_wide = int(1.5 * freq) # 滑动窗口宽度
     training_set, feature_name = creat_training_set(train_path, label_coding, startidx, window_wide, training_dimention)
     test_set = creat_testing_set(test_path, label_coding, startidx, freq, window_wide, training_dimention)
-
+    
 
     print(training_set.shape)
     # print(feature_name)
     print(test_set.shape)
-    
     '''
-    ## Here we set parameter to build labeld time-series from dataset of "(A)DeviceMotion_data"
-    num_features = 12 # attitude(roll, pitch, yaw); gravity(x, y, z); rotationRate(x, y, z); userAcceleration(x,y,z)
-    num_act_labels = 6 # dws, ups, wlk, jog, sit, std
-    num_gen_labels = 1 # 0/1(female/male)
-    label_codes = {"dws":num_features, "ups":num_features+1, "wlk":num_features+2, "jog":num_features+3, "sit":num_features+4, "std":num_features+5}
-    trial_codes = {"dws":[1,2,11], "ups":[3,4,12], "wlk":[7,8,15], "jog":[9,16], "sit":[5,13], "std":[6,14]}    
-    ## Calling 'creat_time_series()' to build time-series
-    print("--> Building Training and Test Datasets...")
-    train_ts, test_ts = creat_time_series(num_features, num_act_labels, num_gen_labels, label_codes, trial_codes)
-    print("--> Shape of Training Time-Seires:", train_ts.shape)
-    print("--> Shape of Test Time-Series:", test_ts.shape)
-    
 
-    ## 运动模式识别demo
+    ## 平滑滤波&突变检测调参
     file_path = 'D:/motion sense/Motion-pattern-recognition/data/WL2DW0944_0860/motion_data.csv'
+    freq = 25
+    window_wide = int(1.5 * freq)
     raw_data, smo_data = creat_pattern_dataset(file_path)
     res_acc = cal_res_acc(smo_data[:, 0:3]) # 计算合加速度
     cwtmatr ,frequencies = cwt_data(res_acc)
-    anomalies_detect(abs(cwtmatr[8]))
+    anomalies_detect(abs(cwtmatr[8]), window_wide, showFigure=True)
     plot_time_serise(raw_data, smo_data, cwtmatr ,frequencies, res_acc, 'acc')
-    '''
+    

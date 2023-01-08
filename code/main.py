@@ -1,14 +1,16 @@
 # 建立训练集
-import build_dataset as bd
+import recognition.build_dataset as bd
 # 数据处理
 import numpy as np
 import pandas as pd
 # 特征选择
-from feature_selector import FeatureSelector
+from recognition.feature_selector import FeatureSelector
 # 分类器
 from sklearn.svm import SVC
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.neighbors import KNeighborsClassifier
+# pdr定位
+import location.pdr as pdr
+# 数据平滑
+from recognition.build_dataset import smooth_data
 
 def change_prediction(predictions, anomalies_index):
     '''
@@ -22,6 +24,7 @@ def change_prediction(predictions, anomalies_index):
     for index in anomalies_index:
         pass
 
+# 运动模式识别部分
 ## 数据准备
 train_path = 'D:/motion sense/Motion-pattern-recognition/data/TrainData'
 test_path = 'D:/motion sense/Motion-pattern-recognition/data/TestData/exp1'
@@ -63,18 +66,23 @@ test_x = df_test_x[remain_features].values # 筛选特征后的测试集
 ## SVM分类
 svc = SVC(C=100, kernel="rbf", max_iter=1000)
 svc.fit(train_x,train_y)
-
+ 
 predictions_svc = svc.predict(test_x)
 print('SVC_Accuracy: {}'.format((true_y == predictions_svc).mean()))
 
-## RandomForest分类
-R_tree = RandomForestClassifier(n_estimators=100)
-R_tree.fit(train_x,train_y)
-#predictions_R_tree = R_tree.predict(test_x)
-#print('RandomForest_Accuracy: {}'.format((true_y == predictions_R_tree).mean()))
+# pdr定位
+## 数据准备
+walking_data_file = test_path + '/pdr_data.csv'
+df_walking = pd.read_csv(walking_data_file)
 
-## K-NN分类
-knn = KNeighborsClassifier(n_neighbors=5)
-knn.fit(train_x,train_y)
-#predictions_knn = knn.predict(test_x)
-#print('KNN_Accuracy: {}'.format((true_y == predictions_knn).mean()),"\n")
+linear = df_walking[[col for col in df_walking.columns if 'linear' in col]].values[startidx:]
+gravity = df_walking[[col for col in df_walking.columns if 'gravity' in col]].values[startidx:]
+rotation = df_walking[[col for col in df_walking.columns if 'rotation' in col]].values[startidx:]
+## 数据平滑
+linear = smooth_data(linear)
+gravity = smooth_data(gravity)
+rotation = smooth_data(rotation)
+
+pdr = pdr.Model(linear, gravity, rotation)
+pdr.show_trace(frequency=25, walkType='normal', initPosition=(0, 0, 0),\
+                predictPattern=predictions_svc, m_WindowWide=window_wide)
