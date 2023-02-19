@@ -14,9 +14,9 @@ init_time = 3
 init_data = freq * init_time # 初始化数据
 path = 'D:/motion sense/Motion-pattern-recognition/data/TestData'
 walking_data_file = path + '/exp1/pdr_data.csv'
-#real_trace_file = path + '/RealTracecsv'
+real_trace_file = path + '/test_coordinate.csv'
 #fuse_yaw_file = 'D:/动态定位/PDR+WIFI+EKF/SensorFusion-master/source-code/fuse_yaw.csv'
-#real_trace = pd.read_csv(real_trace_file).values # 真实轨迹
+real_trace = pd.read_csv(real_trace_file).loc[:, 'x':'z'].values # 真实轨迹
 
 df_walking = pd.read_csv(walking_data_file)
 
@@ -89,13 +89,15 @@ print('steps:', len(steps))
 # Demo6：显示PDR预测轨迹
 # 注意：PDR不清楚初始位置与初始航向角
 #pdr.show_trace(frequency=70, walkType='normal')
-test_x_pdr, test_y_pdr, test_strides, test_angle = pdr.pdr_position(frequency=70, walkType='fusion', offset=0, initPosition=(6.64,11.07))
+#test_x_pdr, test_y_pdr, test_strides, test_angle = pdr.pdr_position(frequency=70, walkType='fusion', offset=0, initPosition=(6.64,11.07))
 #test_x_pdr = np.array(test_x_pdr).reshape(-1,1)
 #test_y_pdr = np.array(test_y_pdr).reshape(-1,1)
 #pdr_test_result = np.concatenate((test_x_pdr,test_y_pdr),axis = 1)
 #pdr_error = np.sqrt(np.sum((pdr_test_result - real_trace)**2, 1))*0.62
 #pdr_mean_accuracy = np.sqrt(np.mean(np.sum((pdr_test_result - real_trace)**2, 1)))*0.62
 #print("PDR平均误差:{:.2f}".format(pdr_mean_accuracy))
-pdr.show_trace(frequency=70, walkType='normal',offset=-np.pi/2, real_trace=real_trace, initPosition=(0,0,0))
+#pdr.show_trace(frequency=25, walkType='normal',\
+#                offset=-np.pi/2, initPosition=(0,0,0),\
+#                real_trace=real_trace,)
 
 

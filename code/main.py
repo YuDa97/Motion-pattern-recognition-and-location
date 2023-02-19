@@ -28,6 +28,7 @@ def change_prediction(predictions, anomalies_index):
 ## 数据准备
 train_path = 'D:/motion sense/Motion-pattern-recognition/data/TrainData'
 test_path = 'D:/motion sense/Motion-pattern-recognition/data/TestData/exp1'
+realTrace_path = 'D:/motion sense/Motion-pattern-recognition/data/TestData/test_coordinate.csv'
 freq = 25 # 数据采样频率是25Hz
 label_coding = {'stand': 0, 'walk': 1, 'up': 2, 'down': 3}
 feature_num = 44
@@ -40,12 +41,13 @@ test_res_acc = bd.creat_anomalies_detect_dataset(test_path)
 cwtmatr ,frequencies = bd.cwt_data(test_res_acc)
 anomalies_index = bd.anomalies_detect(abs(cwtmatr[8]), window_wide,showFigure=False) # 发生突变的窗口下标
 
-
+### 读入数据
 train_set, all_feature_name = bd.creat_training_set(train_path, label_coding, startidx, window_wide, training_dimention)
 test_set = bd.creat_testing_set(test_path, label_coding, startidx, freq, window_wide, training_dimention)
 train_x, train_y = train_set[:, 0:feature_num], train_set[:, -1]
 test_x, true_y = test_set[:, 0:feature_num], test_set[:, -1]
-
+realTrace_df = pd.read_csv(realTrace_path)
+realTrace = realTrace_df.loc[:, 'x':'z'].values
 ## 特征选择
 df_train_x = pd.DataFrame(data=train_x, columns=all_feature_name) # 将训练集转化为datafram格式,作为feature_selector输入
 
@@ -85,4 +87,6 @@ rotation = smooth_data(rotation)
 
 pdr = pdr.Model(linear, gravity, rotation)
 pdr.show_trace(frequency=25, walkType='normal', initPosition=(0, 0, 0),\
-                predictPattern=predictions_svc, m_WindowWide=window_wide)
+                predictPattern=predictions_svc, m_WindowWide=window_wide,\
+                real_trace=realTrace)
+print('Real steps:', realTrace.shape[0]-1)

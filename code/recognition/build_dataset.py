@@ -189,7 +189,8 @@ def slide_window(data, wide, label, time_label=None, freq=25, startidx=75):
     feature_name = np.zeros((0))
     if time_label is not None:
         m, j = time_label.shape[0], 0
-        flag = 0
+        shift_idx = np.zeros((0)) # 保存运动状态转变时的下标
+        startidx = int(time_label[0][0] * freq)
     for i in range(0, n, wide):
         win_feature = np.zeros((0)) # 一个窗口内的特征
         win_acc = data[i:i+wide, :] # 三轴加速度
@@ -204,8 +205,11 @@ def slide_window(data, wide, label, time_label=None, freq=25, startidx=75):
             label_feature = np.append(win_feature, label).reshape(1, -1) # 给训练数据附上标签
         ## 当输入的label是字典, 构建测试集
         else: 
+            
             if j < m:
                 part = time_label[j] # 对于测试集中第j段运动模式
+                if j + 1 < m:
+                    next_part = time_label[j+1] # 第J段运动模式
                 start, end = int(part[0] * freq) - startidx, int(part[1]*freq) - startidx
                 label_code = label[part[2]]
                 if i >= start and i+wide <= end:
@@ -213,7 +217,8 @@ def slide_window(data, wide, label, time_label=None, freq=25, startidx=75):
                     if i+wide == end:
                         j += 1
                 elif i >= start and i+wide > end:
-                    label_feature = np.append(win_feature, -1).reshape(1, -1) # 如果窗口处于运动状态转换处，标记为-1
+                    label_feature = np.append(win_feature, label[next_part[2]]).reshape(1, -1) # 转换处标签延续上一时刻
+                    #label_feature = np.append(win_feature, -1).reshape(1, -1) # 如果窗口处于运动状态转换处，标记为-1
                     j += 1
                     
                 
@@ -222,7 +227,11 @@ def slide_window(data, wide, label, time_label=None, freq=25, startidx=75):
         if i == 0:
             dataset = label_feature
         else:
-            dataset = np.concatenate((dataset, label_feature), axis=0)
+            if (type(label) != int) and (i >= start and i+wide > end):
+                dataset = np.concatenate((dataset, label_feature), axis=0)
+                shift_idx = np.append(shift_idx, dataset.shape[0] - 1)
+            else:
+                dataset = np.concatenate((dataset, label_feature), axis=0)
     for attr, value in feature.__dict__.items(): 
         if 'acc' in attr: # unverified!!
             continue

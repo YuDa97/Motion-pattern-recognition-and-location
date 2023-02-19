@@ -635,7 +635,8 @@ class FeatureSelector():
         plt.plot(list(range(1, len(self.feature_importances) + 1)), self.feature_importances['cumulative_importance'], 'r-')
         plt.xlabel('Number of Features', size = 14); plt.ylabel('Cumulative Importance', size = 14); 
         plt.title('Cumulative Feature Importance', size = 16);
-
+        #plt.show()
+        
         if threshold:
 
             # Index of minimum number of features needed for cumulative importance threshold

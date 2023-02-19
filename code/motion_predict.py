@@ -6,9 +6,14 @@ import pandas as pd
 # 特征选择
 from recognition.feature_selector import FeatureSelector
 # 分类器
+import lightgbm as lgb
 from sklearn.svm import SVC
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.neighbors import KNeighborsClassifier
+# 分类报告
+from sklearn import metrics 
+# 运行时间计算
+import time as t
 
 def change_prediction(predictions, anomalies_index):
     '''
@@ -44,37 +49,61 @@ train_x, train_y = train_set[:, 0:feature_num], train_set[:, -1]
 test_x, true_y = test_set[:, 0:feature_num], test_set[:, -1]
 
 ## 特征选择
+
 df_train_x = pd.DataFrame(data=train_x, columns=all_feature_name) # 将训练集转化为datafram格式,作为feature_selector输入
 
-fs = FeatureSelector(data = df_train_x, labels = train_y) 
-fs.identify_collinear(correlation_threshold=0.0000005, one_hot=False)
+fs = FeatureSelector(data = df_train_x, labels = train_y)
+
+fs.identify_collinear(correlation_threshold=0.8, one_hot=False)
 fs.identify_zero_importance(task = 'classification', n_iterations = 10, early_stopping = False)
 fs.identify_low_importance(cumulative_importance=0.99)
-selected_training_set = fs.remove(methods = ['zero_importance', 'low_importance']) # 可选'collinear', 'zero_importance', 'low_importance'
+#selected_training_set = fs.remove(methods = ['collinear'])
+selected_training_set = fs.remove(methods = ['zero_importance']) # 可选'collinear', 'zero_importance', 'low_importance'
 remain_features = list(selected_training_set) # 查看保留的特征
 # removed_features  = fs.check_removal() # 查看移除的特征
 # print(removed_features)
+fs.plot_feature_importances(plot_n=40, threshold=0.9) # 画出特征重要性排序
 train_x = selected_training_set[remain_features].values # 筛选特征后的训练集
 
 
 df_test_x = pd.DataFrame(data=test_x, columns=all_feature_name) # 将测试集转化为datafram格式
 test_x = df_test_x[remain_features].values # 筛选特征后的测试集
 
+## lgb分类
+lgbModel = lgb.LGBMClassifier(n_estimators=1000, learning_rate = 0.05, verbose = -1)
+lgbModel.fit(train_x,train_y)
+
+lgb_start_time = t.time()
+predictions_lgb = lgbModel.predict(test_x)
+lgb_end_time = t.time()
+print('lgb分类报告: \n', metrics.classification_report(true_y, predictions_lgb))
+print("lgb_predict_time", lgb_end_time - lgb_start_time)
+
 ## SVM分类
-svc = SVC(C=100, kernel="rbf", max_iter=1000)
+svc = SVC(C=300, kernel="rbf", max_iter=1000)
 svc.fit(train_x,train_y)
 
+svc_start_time = t.time()
 predictions_svc = svc.predict(test_x)
-print('SVC_Accuracy: {}'.format((true_y == predictions_svc).mean()))
+svc_end_time = t.time()
+print('SVM分类报告: \n', metrics.classification_report(true_y, predictions_svc ))
+print("svc_predict_time", svc_end_time - svc_start_time)
 
 ## RandomForest分类
 R_tree = RandomForestClassifier(n_estimators=100)
 R_tree.fit(train_x,train_y)
-#predictions_R_tree = R_tree.predict(test_x)
-#print('RandomForest_Accuracy: {}'.format((true_y == predictions_R_tree).mean()))
+
+rTree_start_time = t.time()
+predictions_R_tree = R_tree.predict(test_x)
+rTree_end_time = t.time()
+print('RandomForest分类报告: \n', metrics.classification_report(true_y, predictions_R_tree))
+print("rTree_predict_time", rTree_end_time - rTree_start_time)
 
 ## K-NN分类
 knn = KNeighborsClassifier(n_neighbors=5)
 knn.fit(train_x,train_y)
-#predictions_knn = knn.predict(test_x)
-#print('KNN_Accuracy: {}'.format((true_y == predictions_knn).mean()),"\n")
+knn_start_time = t.time()
+predictions_knn = knn.predict(test_x)
+knn_end_time = t.time()
+print('K-NN分类报告: \n', metrics.classification_report(true_y, predictions_knn))
+print("K-NN_predict_time", knn_end_time - knn_start_time)

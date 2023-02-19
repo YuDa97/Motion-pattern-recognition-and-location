@@ -23,7 +23,7 @@ plt.rcParams['font.sans-serif'] = ['SimHei']
 plt.rcParams['axes.unicode_minus'] = False
 
 class Model(object):
-    def __init__(self, linear, gravity, rotation,fuse_yaw=None,min_acc=0.4):
+    def __init__(self, linear, gravity, rotation,fuse_yaw=None,min_acc=0.6):
         self.linear = linear
         self.gravity = gravity
         self.rotation = rotation
@@ -78,7 +78,7 @@ class Model(object):
         steps
         字典型数组,每个字典保存了峰值位置(index)与该点的合加速度值(acceleration)
         '''
-        offset = 1.1
+        offset = 0.68
         g = 0.96
         a_vertical = self.coordinate_conversion()
         slide = int(frequency * offset) # 滑动窗口长度
@@ -157,19 +157,20 @@ class Model(object):
             yaw[i] = -v # 由于yaw逆时针为正向，转化为顺时针为正向更符合常规的思维方式
         return yaw
     
-    '''
+
+    def pdr_position(self, frequency=25, walkType='normal', \
+                    offset = 0,initPosition=(0, 0, 0), bias = 136*np.pi/180,\
+                    fuse_oritation = False, **kw):
+        '''
         步行轨迹的每一个相对坐标位置
         返回的是预测作为坐标
-        bias为人为建立参考系与北东天参考系的偏差（在物理楼六楼参考系下，偏差为18度左右）
-    '''
-    def pdr_position(self, frequency=25, walkType='normal', \
-                    offset = 0,initPosition=(0, 0, 0), bias = 18*np.pi/180, \
-                    fuse_oritation = False, **kw):
+        bias为人为建立参考系与北东天参考系的偏差
+        '''
         if fuse_oritation is True:
             yaw = self.fuse_yaw
         else:
             yaw = self.step_heading()
-        set = 1.1 # 与step_counter函数保持一致
+        set = 0.68 # 与step_counter函数保持一致
         slide = frequency * set
         if 'predictPattern' in kw:
             steps = self.step_counter(frequency=frequency, walkType=walkType, \
@@ -194,7 +195,7 @@ class Model(object):
             pattern = v['m_pattern']
             # 获取航向角
             yaw_range = yaw[int(index-slide):int(index+slide)]
-            theta = np.mean(yaw_range) + bias 
+            theta = np.mean(yaw_range) + bias
             angle.append(theta)
             if pattern == 1: # 若为行走
                 length = self.step_stride(v['acceleration'], v['v_acceleration'], k=0.37)
@@ -426,10 +427,10 @@ class Model(object):
             trace_x = real_trace[0]
             trace_y = real_trace[1]
             trace_z = real_trace[2]
-            l1, = ax.plot(trace_x, trace_y, trace_z, color='g')
+            l1, = ax.plot(trace_x, trace_y, trace_z, color='orange')
             handles.append(l1)
             labels.append('Real tracks')
-            plt.scatter(trace_x, trace_y, trace_z, color='orange')
+            #plt.scatter(trace_x, trace_y, trace_z, color='orange')
             #for k in range(0, len(trace_x)):
             #    plt.annotate(k, xy=(trace_x[k], trace_y[k]), xytext=(trace_x[k]+0.1,trace_y[k]+0.1), color='green')#在各个点旁边添加步数记录
 
@@ -437,11 +438,15 @@ class Model(object):
             offset = kw['offset']
         else:
             offset = 0
-        
-        x, y, z, _, _ = self.pdr_position(frequency=25, walkType='normal', \
-                    offset = 0,initPosition=(0, 0, 0), bias = 18*np.pi/180, \
-                    fuse_oritation = False, \
-                    predictPattern=kw['predictPattern'], m_WindowWide=kw['m_WindowWide'])
+        if 'predictPattern' in kw:
+            x, y, z, _, _ = self.pdr_position(frequency=frequency, walkType=walkType, \
+                        offset = 0,initPosition=initPosition,\
+                        fuse_oritation = False, \
+                        predictPattern=kw['predictPattern'], m_WindowWide=kw['m_WindowWide'])
+        else:
+            x, y, z, _, _ = self.pdr_position(frequency=frequency, walkType=walkType, \
+                        offset = 0,initPosition=initPosition, \
+                        fuse_oritation = False)
         print('steps:', len(x)-1)
 
         #for k in range(0, len(x)):
