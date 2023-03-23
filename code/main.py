@@ -12,7 +12,8 @@ from sklearn.svm import SVC
 import location.pdr as pdr
 # 数据平滑
 from recognition.build_dataset import smooth_data
-
+# 分类报告
+from sklearn import metrics 
 def save_load_remainFeature(function, path, remain_features=None):
     '''
     保存或加载筛选出的特征
@@ -91,7 +92,7 @@ svc = SVC(C=100, kernel="rbf", max_iter=1000)
 svc.fit(train_x,train_y)
  
 predictions_svc = svc.predict(test_x)
-print('SVC_Accuracy: {}'.format((true_y == predictions_svc).mean()))
+print('SVM分类报告: \n', metrics.classification_report(true_y, predictions_svc ))
 
 # pdr定位
 ## 数据准备
