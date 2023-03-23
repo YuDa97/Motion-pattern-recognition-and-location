@@ -301,9 +301,9 @@ def creat_anomalies_detect_dataset(exp_path):
     return res_acc
 
 if __name__ == "__main__":
-    '''
-    train_path = 'D:/motion sense/Motion-pattern-recognition/data/TrainData'
-    test_path = 'D:/motion sense/Motion-pattern-recognition/data/TestData/exp1'
+    
+    train_path = '/home/yuda/Motion-pattern-recognition/data/TrainData'
+    test_path = '/home/yuda/Motion-pattern-recognition/data/TestData/exp1'
     freq = 25 # 数据采样频率是25Hz
     label_coding = {'stand': 0, 'walk': 1, 'up': 2, 'down': 3}
     feature_num = 44
@@ -317,10 +317,10 @@ if __name__ == "__main__":
     print(training_set.shape)
     # print(feature_name)
     print(test_set.shape)
+    
     '''
-
     ## 平滑滤波&突变检测调参
-    file_path = 'D:/motion sense/Motion-pattern-recognition/data/WL2DW0944_0860/motion_data.csv'
+    file_path = '/home/yuda/Motion-pattern-recognition/data/demo/WL2DW0944_0860/motion_data.csv'
     freq = 25
     window_wide = int(1.5 * freq)
     raw_data, smo_data = creat_pattern_dataset(file_path)
@@ -328,4 +328,4 @@ if __name__ == "__main__":
     cwtmatr ,frequencies = cwt_data(res_acc)
     anomalies_detect(abs(cwtmatr[8]), window_wide, showFigure=True)
     plot_time_serise(raw_data, smo_data, cwtmatr ,frequencies, res_acc, 'acc')
-    
+    '''

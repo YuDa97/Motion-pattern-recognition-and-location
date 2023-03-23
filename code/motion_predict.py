@@ -1,5 +1,6 @@
 # 建立训练集
 import recognition.build_dataset as bd
+from sklearn.model_selection import train_test_split
 # 数据处理
 import numpy as np
 import pandas as pd
@@ -15,38 +16,37 @@ from sklearn import metrics
 # 运行时间计算
 import time as t
 
-def change_prediction(predictions, anomalies_index):
-    '''
-    对分类器预测结果进行修正
-    input: 
-    predictions->ndarry: 分类器预测结果
-    anomalies_index->list: 发生突变窗口的下标
-    output:
-    correct_predictions->ndarry: 修正后的预测结果
-    '''
-    for index in anomalies_index:
-        pass
 
-## 数据准备
-train_path = 'D:/motion sense/Motion-pattern-recognition/data/TrainData'
-test_path = 'D:/motion sense/Motion-pattern-recognition/data/TestData/exp1'
+## 数据准备 
+train_path = '/home/yuda/Motion-pattern-recognition/data/TrainData'
+test_path = '/home/yuda/Motion-pattern-recognition/data/TestData/exp1'
 freq = 25 # 数据采样频率是25Hz
 label_coding = {'stand': 0, 'walk': 1, 'up': 2, 'down': 3}
 feature_num = 44
 training_dimention = feature_num + 1
 startidx = 75 # 舍掉前75个点
 window_wide = int(1.5 * freq) # 滑动窗口宽度
+split_trainingset = False # 是否将训练数据划分为测试集和训练集,不对连续运动状态进行识别
 
+'''
+#效果不好，未启用
 ### 对测试集和加速度小波变换后进行频域分析
 test_res_acc = bd.creat_anomalies_detect_dataset(test_path)
 cwtmatr ,frequencies = bd.cwt_data(test_res_acc)
 anomalies_index = bd.anomalies_detect(abs(cwtmatr[8]), window_wide,showFigure=False) # 发生突变的窗口下标
-
+'''
 
 train_set, all_feature_name = bd.creat_training_set(train_path, label_coding, startidx, window_wide, training_dimention)
-test_set = bd.creat_testing_set(test_path, label_coding, startidx, freq, window_wide, training_dimention)
-train_x, train_y = train_set[:, 0:feature_num], train_set[:, -1]
-test_x, true_y = test_set[:, 0:feature_num], test_set[:, -1]
+if split_trainingset:
+    dataset, label = train_set[:, 0:feature_num], train_set[:, -1]
+    train_x, test_x, train_y, true_y  = train_test_split(
+        dataset, label, test_size=0.2, random_state=42)
+
+else:
+    test_set = bd.creat_testing_set(test_path, label_coding, startidx, freq, window_wide, training_dimention)
+    train_x, train_y = train_set[:, 0:feature_num], train_set[:, -1]
+    test_x, true_y = test_set[:, 0:feature_num], test_set[:, -1]
+
 
 ## 特征选择
 

@@ -18,21 +18,30 @@ import matplotlib.pyplot as plt
 from scipy.stats import norm
 from matplotlib import rcParams
 from mpl_toolkits.mplot3d import Axes3D
+from sklearn import preprocessing
+import torch
+from SLE.CNN import CNN
+from scipy import integrate
 
-plt.rcParams['font.sans-serif'] = ['SimHei']
+plt.rcParams['font.sans-serif'] = ['Times New Roman']
 plt.rcParams['axes.unicode_minus'] = False
 
 class Model(object):
-    def __init__(self, linear, gravity, rotation,fuse_yaw=None,min_acc=0.6):
+    def __init__(self, linear, gravity, rotation, gyro, fuse_yaw=None,CNNParameterPath=None, min_acc=0.6):
         self.linear = linear
         self.gravity = gravity
         self.rotation = rotation
         self.fuse_yaw = fuse_yaw
         self.min_acc = min_acc
-    '''
-        四元数转化为欧拉角
-    '''
+        self.gyro = gyro
+        self.CNNParameterPath = CNNParameterPath
+        self.freq = 25
+        self.a_vertical = self.coordinate_conversion()
+
     def quaternion2euler(self):
+        '''
+        四元数转化为欧拉角
+        '''
         rotation = self.rotation
         x = rotation[:, 0]
         y = rotation[:, 1]
@@ -142,14 +151,60 @@ class Model(object):
         
         return steps
     
-    # 步长推算
-    # k为身高相关常数
-    def step_stride(self, max_acceleration, min_acceleration, k=0.37):
-        return np.power(max_acceleration - min_acceleration, 1/4) * k
+    
+    def step_stride(self, v, model, time=None):
+        '''
+        步长推算
+        model: [NSL, CNN]
+        NSL:
+        k为身高相关常数
+        v为每步的数组
+        如果model选择为CNN需要提供当前步与上一步的时间间隔
+        '''
+        if model == "NSL":
+            k = 0.37
+            return np.power(v['acceleration'] - v['v_acceleration'], 1/4) * k
+        elif model == "CNN":
+            cnn = CNN()
+            cnn.load_state_dict(torch.load(self.CNNParameterPath))
+            
+            w = 14 # 窗口宽度
+            if v['index'] > 7 and v['index'] + int(w/2) + 1 < self.linear.shape[0]:
+                w_start = v['index'] - int(w/2) # 窗口起始索引
+                w_end = v['index'] + int(w/2) + 1 # 窗口结束索引
 
-    # 航向角
-    # 根据姿势直接使用yaw
+                #CNN预测斜边
+                w_acc = self.linear[w_start: w_end,:]
+                w_gyro = self.gyro[w_start: w_end,:]
+                t_array = np.full(shape=(w_acc.shape[0],1),fill_value=time)
+                w_data = np.concatenate((w_acc, w_gyro, t_array), axis=1).T # 7*15, 方便标准化和输入到CNN
+                w_data = preprocessing.normalize(w_data, norm='l2') # 标准化
+                w_data = np.array([w_data])
+                w_data = torch.as_tensor(torch.from_numpy(w_data), dtype=torch.float32)
+                if torch.cuda.is_available():
+                    cnn = cnn.cuda()
+                    w_data = w_data.cuda()
+                hypoten_length = cnn(w_data)
+                hypoten_length = hypoten_length.cpu().detach().numpy()
+                hypoten_length = float(hypoten_length.ravel()[0])
+
+                #重力加速度方向积分求高度
+                delt_t = (w+1) * 1 / self.freq # 一个窗口的时间 
+                t = np.arange(0, delt_t, 1/self.freq) # 积分区间
+                w_a_vertical = self.a_vertical[w_start: w_end]
+                delt_v = integrate.simps(w_a_vertical, t)
+                delt_h = np.abs(delt_v * delt_t)
+                delt_x = (hypoten_length**2 - delt_h**2)**(1/2)
+                
+            else:
+                print("窗口内的数据不满足15个数据点条件,无法使用CNN预测")
+            return hypoten_length, delt_h, delt_x
+    
     def step_heading(self):
+        '''
+        # 航向角
+        # 根据姿势直接使用yaw
+        '''
         _, _, yaw = self.quaternion2euler()
         # init_theta = yaw[0] # 初始角度
         for i,v in enumerate(yaw):
@@ -159,7 +214,7 @@ class Model(object):
     
 
     def pdr_position(self, frequency=25, walkType='normal', \
-                    offset = 0,initPosition=(0, 0, 0), bias = 136*np.pi/180,\
+                    offset = 0,initPosition=(0, 0, 0), bias = 123 * np.pi/180,\
                     fuse_oritation = False, **kw):
         '''
         步行轨迹的每一个相对坐标位置
@@ -193,43 +248,53 @@ class Model(object):
             v = steps[i]
             index = v['index']
             pattern = v['m_pattern']
+            # 给CNN提供两步间的时间
+            if i > 0:
+                last_v = steps[i-1]
+                t = (v['index'] - last_v['index']) * 1/self.freq
             # 获取航向角
             yaw_range = yaw[int(index-slide):int(index+slide)]
             theta = np.mean(yaw_range) + bias
             angle.append(theta)
             if pattern == 1: # 若为行走
-                length = self.step_stride(v['acceleration'], v['v_acceleration'], k=0.37)
+                length = self.step_stride(v, model="NSL")
                 length = round(length/0.6, 2)
                 strides.append(length)
                 if len(angle) >= 2:
                     if np.abs(angle[-1] - angle[-2])*180/np.pi < 4:
                         angle[-1] = angle[-2]
-                x = x + length*np.sin(angle[-1])
+                x = x + length*np.sin(angle[-1]) 
                 y = y + length*np.cos(angle[-1])
                 position_x.append(x)
                 position_y.append(y)
                 position_z.append(z)
             elif pattern == 3: # 若为下楼
-                length = 0.5
-                strides.append(length)
+                hypoten_length, delt_h, delt_x = self.step_stride(v, model="CNN", time=t) # 分别斜边长、高度变化、x轴变化
+                hypoten_length = round(hypoten_length/0.6, 2) #变到一个单位
+                delt_h = round(delt_h/0.6, 2) 
+                delt_x = round(delt_x/0.6, 2) 
+                strides.append(hypoten_length)
                 if len(angle) >= 2:
                     if np.abs(angle[-1] - angle[-2])*180/np.pi < 4:
                         angle[-1] = angle[-2]
-                x = x + length*np.sin(angle[-1])
-                y = y + length*np.cos(angle[-1])
-                z = z - 0.25
+                x = x + delt_x*np.sin(angle[-1])
+                y = y + delt_x*np.cos(angle[-1])
+                z = z - delt_h
                 position_x.append(x)
                 position_y.append(y)
                 position_z.append(z)
             elif pattern == 2: # 若为上楼
-                length = 0.5
-                strides.append(length)
+                hypoten_length, delt_h, delt_x = self.step_stride(v, model="CNN", time=t)
+                hypoten_length = round(hypoten_length/0.6, 2) #变到一个单位
+                delt_h = round(delt_h/0.6, 2) 
+                delt_x = round(delt_x/0.6, 2) 
+                strides.append(hypoten_length)
                 if len(angle) >= 2:
                     if np.abs(angle[-1] - angle[-2])*180/np.pi < 4:
                         angle[-1] = angle[-2]
-                x = x + length*np.sin(angle[-1])
-                y = y + length*np.cos(angle[-1])
-                z = z + 0.25
+                x = x + delt_x*np.sin(angle[-1])
+                y = y + delt_x*np.cos(angle[-1])
+                z = z + delt_h
                 position_x.append(x)
                 position_y.append(y)
                 position_z.append(z)
@@ -241,6 +306,13 @@ class Model(object):
                 position_x.append(x)
                 position_y.append(y)
                 position_z.append(z)
+
+        # 坐标变换,董坐标系x轴与东相反
+        for i in range(0, len(position_x)): 
+            if i == 0:
+                continue
+            else:
+                position_x[i] = -position_x[i]
         # 步长计入一个状态中，最后一个位置没有下一步，因此步长记为0
         return position_x, position_y, position_z, strides + [0], angle
 
@@ -285,10 +357,10 @@ class Model(object):
         plt.show()
         # plt.savefig('D:/硕士论文/图表/PDR竖直加速度.jpg',format='jpg',bbox_inches = 'tight',dpi=300)
 
-    '''
-        输出一个数据分布散点图, 用来判断某一类型数据的噪声分布情况, 通常都会是高斯分布, 
-    '''
     def show_gaussian(self, data, fit):
+        '''
+        输出一个数据分布散点图, 用来判断某一类型数据的噪声分布情况, 通常都会是高斯分布, 
+        '''
         wipe = 150
         data = data[wipe:len(data)-wipe]
         division = 100
@@ -447,6 +519,8 @@ class Model(object):
             x, y, z, _, _ = self.pdr_position(frequency=frequency, walkType=walkType, \
                         offset = 0,initPosition=initPosition, \
                         fuse_oritation = False)
+        
+                
         print('steps:', len(x)-1)
 
         #for k in range(0, len(x)):

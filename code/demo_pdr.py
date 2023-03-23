@@ -12,10 +12,10 @@ import os
 freq = 25
 init_time = 3
 init_data = freq * init_time # 初始化数据
-path = 'D:/motion sense/Motion-pattern-recognition/data/TestData'
+path = '/home/yuda/Motion-pattern-recognition/data/TestData'
 walking_data_file = path + '/exp1/pdr_data.csv'
 real_trace_file = path + '/test_coordinate.csv'
-#fuse_yaw_file = 'D:/动态定位/PDR+WIFI+EKF/SensorFusion-master/source-code/fuse_yaw.csv'
+
 real_trace = pd.read_csv(real_trace_file).loc[:, 'x':'z'].values # 真实轨迹
 
 df_walking = pd.read_csv(walking_data_file)
@@ -24,12 +24,14 @@ df_walking = pd.read_csv(walking_data_file)
 linear = df_walking[[col for col in df_walking.columns if 'linear' in col]].values[init_data:]
 gravity = df_walking[[col for col in df_walking.columns if 'gravity' in col]].values[init_data:]
 rotation = df_walking[[col for col in df_walking.columns if 'rotation' in col]].values[init_data:]
+gyro = df_walking[[col for col in df_walking.columns if 'gyr' in col]].values[init_data:]
 ## 数据平滑
 linear = smooth_data(linear)
 gravity = smooth_data(gravity)
 rotation = smooth_data(rotation)
+gyro = smooth_data(gyro)
 
-pdr = pdr.Model(linear, gravity, rotation)
+pdr = pdr.Model(linear, gravity, rotation, gyro)
 
 # # Demo1：显示垂直方向合加速度与步伐波峰分布
 # # frequency：数据采集频率
@@ -98,6 +100,6 @@ print('steps:', len(steps))
 #print("PDR平均误差:{:.2f}".format(pdr_mean_accuracy))
 #pdr.show_trace(frequency=25, walkType='normal',\
 #                offset=-np.pi/2, initPosition=(0,0,0),\
-#                real_trace=real_trace,)
+#               real_trace=real_trace)
 
 
