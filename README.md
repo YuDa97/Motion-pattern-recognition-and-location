@@ -30,7 +30,7 @@ WiFi定位过程包括:数据采集->滤波->构建指纹库->选择/训练匹�
 + TrainData:用于运动模式识别分类器的训练
 + demo:为项目早期调试代码数据  
 ## 注意事项  
-本项目所有数据均由智能手机收集，要求收集时始终保持手持手机于胸前，手机y轴朝向正前方，z轴与重力方向相反。采样频率为25Hz
+本项目所有数据均由智能手机收集，要求收集时始终保持手持手机于胸前，手机y轴朝向正前方，z轴与重力方向相反。采样频率为25Hz。![手机坐标系与地球坐标系](https://github.com/YuDa97/Motion-pattern-recognition/blob/main/Figure/phone&ENU_coordinate.jpg)
 1. **运动模式识别部分**
 只选用三轴加速度计数据进行训练和预测，特征提取也仅限于常见统计特征，特征筛选主要依靠lgb贡献率筛选，主要的分类器为SVM。
 2. **PDR定位部分**  
@@ -38,5 +38,10 @@ WiFi定位过程包括:数据采集->滤波->构建指纹库->选择/训练匹�
 在本项目建立的坐标系中，一个单位对应现实中的0.6m
 3. **wifi与融合定位部分**  
 该部分仅提供函数，本项目实际上并没有启用。
+## 结果
+对./data/TestData/exp1数据进行测试  
+SVM模式识别precision为0.95  
+pdr一共检测出步数132步，平均定位误差为1.26m（欧式距离）
+![pdr定位轨迹](https://github.com/YuDa97/Motion-pattern-recognition/blob/main/Figure/pdr_trace.png)
 ## 鸣谢
 感谢salmoshu大佬的[Location项目](https://github.com/salmoshu/location)，对我们帮助很大！
