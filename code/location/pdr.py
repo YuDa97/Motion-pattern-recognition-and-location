@@ -185,7 +185,10 @@ class Model(object):
                     cnn = cnn.cuda()
                     w_data = w_data.cuda()
                 hypoten_length = cnn(w_data)
-                hypoten_length = hypoten_length.cpu().detach().numpy()
+                if torch.cuda.is_available():
+                    hypoten_length = hypoten_length.cpu().detach().numpy()
+                else:
+                    hypoten_length = hypoten_length.detach().numpy()
                 hypoten_length = float(hypoten_length.ravel()[0])
 
                 #重力加速度方向积分求高度
