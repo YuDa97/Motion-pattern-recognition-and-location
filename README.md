@@ -5,7 +5,7 @@ PDR定位过程包括:数据采集->滤波->步数检测->步长推断,航向角
 WiFi定位过程包括:数据采集->滤波->构建指纹库->选择/训练匹配算法->输出定位结果
 ## 文件说明
 1. **code部分**  
-+ CNNParameter:保存训练好的CNN模型参数。  
++ CNNParameter:保存训练好的CNN模型参数(使用GPU训练，需要gpu版本pytorch加载)。  
 + RemainFeature:保存lgb筛选出的加速度特征。  
 + recognition:运动模式识别模块
    + build_dataset.py:准备数据
@@ -40,7 +40,7 @@ WiFi定位过程包括:数据采集->滤波->构建指纹库->选择/训练匹�
 该部分仅提供函数，本项目实际上并没有启用。
 ## 结果
 对./data/TestData/exp1数据进行测试  
-SVM模式识别precision为0.95  
+SVM模式识别precision为0.94  
 pdr一共检测出步数132步，平均定位误差为1.26m（欧式距离）
 ![pdr定位轨迹](https://github.com/YuDa97/Motion-pattern-recognition/blob/main/Figure/pdr_trace.png)
 ## 鸣谢
