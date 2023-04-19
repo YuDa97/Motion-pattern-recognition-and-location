@@ -20,7 +20,7 @@ from sklearn.multioutput import MultiOutputRegressor
 from sklearn.neural_network import MLPRegressor
 import heapq
 from sklearn.preprocessing import MinMaxScaler
-import plda
+# import plda
 from sklearn.decomposition import PCA
 plt.rcParams['font.sans-serif'] = ['SimHei']
 plt.rcParams['axes.unicode_minus'] = False
@@ -249,6 +249,7 @@ class Model(object):
         return predict, accuracy
 
     #K-PLDA
+    '''
     def plda_reg(self, offline_rss, offline_label, offline_location, online_rss, online_location):#使用plda来预测待估计点坐标函数
         clf = plda.Classifier()
         offline_rss, online_rss = self.pca(offline_rss, online_rss,0.95)
@@ -291,7 +292,7 @@ class Model(object):
         predict = np.dot(c,offline_location) #输出预测坐标，注意这里矩阵乘法顺序不能搞反
         accuracy = self.ave_accuracy(predict, online_location)
         return predict, accuracy
-
+        
 #添加区域限制的PLDA算法
     def limited_plda_reg(self, offline_rss, offline_location, label, online_rss, online_location, init_location, limited_location=None):
         clf = plda.Classifier()
@@ -345,6 +346,7 @@ class Model(object):
         
         accuracy = self.square_accuracy(predict, online_location)
         return predict, accuracy
+        '''
 #添加区域限制的WKNN
     def limited_wknn(self, offline_rss, offline_location, online_rss, online_location, init_location, limited_location):
         k = 4
