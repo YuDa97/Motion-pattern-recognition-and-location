@@ -5,6 +5,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import os
 
+'''
+# 动态收集WiFi数据(二维)
 path = 'e:/动态定位/PDR+WIFI+EKF/location-master/wlData'
 
 real_trace_file = path + '/PDRTest/RealTrace_train7.csv'
@@ -37,6 +39,23 @@ for k, v in enumerate(steps):
     value = rssi[index]
     value = value.reshape(1, len(value))
     result = np.concatenate((result,value),axis=0)
+'''
+
+# 静态收集WiFi数据(三维)
+
+TP_path = "./data/WiFi/TP.csv"
+RP_path = "./data/WiFi/RP.csv"
+
+TP_df = pd.read_csv(TP_path)
+RP_df = pd.read_csv(RP_path)
+
+
+fingerprint_rssi = RP_df.iloc[:, 3:].values # RP的RSSI
+fingerprint_position = RP_df.iloc[:, 0:3].values # RP位置
+result = TP_df.iloc[:, 3:].values # TP的RSSI
+real_trace = TP_df.iloc[:, 0:3].values
+wifi = wifi.Model(fingerprint_rssi)
+
 
 # # knn算法
 #predict, accuracy = wifi.knn_reg(fingerprint_rssi, fingerprint_position, result, real_trace)
@@ -45,8 +64,8 @@ for k, v in enumerate(steps):
 
 # # wknn算法
 predict, accuracy = wifi.wknn_reg(fingerprint_rssi, fingerprint_position, result, real_trace)
-predict[0][0] = 6.64
-predict[0][1] = 11.07
+#predict[0][0] = 6.64
+#predict[0][1] = 11.07
 print('wknn accuracy:', accuracy, 'm')
 wifi.show_trace(predict, real_trace=real_trace)
 
