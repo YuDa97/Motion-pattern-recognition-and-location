@@ -13,7 +13,7 @@ import location.fusion as fusion
 注意假如有n个状态，那么就有n-1次状态转换
 '''
 
-frequency = 70 # 数据采集频率
+frequency = 25 # 数据采集频率
 sigma_wifi = 4.1
 sigma_pdr = .3
 sigma_yaw = 15/360
