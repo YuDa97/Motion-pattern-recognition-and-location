@@ -57,17 +57,20 @@ real_trace = TP_df.iloc[:, 0:3].values
 wifi = wifi.Model(fingerprint_rssi)
 
 
-# # knn算法
+# knn算法
 #predict, accuracy = wifi.knn_reg(fingerprint_rssi, fingerprint_position, result, real_trace)
 #print('knn accuracy:', accuracy, 'm')
 #wifi.show_trace(predict, real_trace=real_trace)
 
-# # wknn算法
-predict, accuracy = wifi.wknn_reg(fingerprint_rssi, fingerprint_position, result, real_trace)
-#predict[0][0] = 6.64
-#predict[0][1] = 11.07
-print('wknn accuracy:', accuracy, 'm')
-wifi.show_trace(predict, real_trace=real_trace)
+# wknn算法
+#predict, accuracy = wifi.wknn_reg(fingerprint_rssi, fingerprint_position, result, real_trace)
+#print('wknn accuracy:', accuracy, 'm')
+#wifi.show_3D_trace(predict, real_trace=real_trace)
+
+# 选取信号最强的num个rssi作为WKNN匹配
+predict, accuracy = wifi.wknn_strong_signal_reg(fingerprint_rssi, fingerprint_position, result, real_trace)
+print('strong signal wknn accuracy:', accuracy, 'm')
+wifi.show_3D_trace(predict, real_trace=real_trace)
 
 # 添加区域限制的knn回归
 #predict, accuracy = wifi.ml_limited_reg('knn', fingerprint_rssi, fingerprint_position, result, real_trace)
@@ -76,7 +79,7 @@ wifi.show_trace(predict, real_trace=real_trace)
 # svm算法
 #predict, accuracy = wifi.svm_reg(fingerprint_rssi, fingerprint_position, result, real_trace)
 #print('svm accuracy:', accuracy, 'm')
-#wifi.show_trace(predict, real_trace=real_trace)
+#wifi.show_3D_trace(predict, real_trace=real_trace)
 
 
 # rf算法
@@ -91,11 +94,12 @@ wifi.show_trace(predict, real_trace=real_trace)
 # gdbt算法
 #predict, accuracy = wifi.dbdt(fingerprint_rssi, fingerprint_position, result, real_trace)
 #print('gdbt accuracy:', accuracy, 'm')
-#wifi.show_trace(predict, real_trace=real_trace)
+#wifi.show_3D_trace(predict, real_trace=real_trace)
+
 # 多层感知机
 #predict, accuracy = wifi.nn(fingerprint_rssi, fingerprint_position, result, real_trace)
 #print('nn accuracy:', accuracy, 'm')
-#wifi.show_trace(predict, real_trace=real_trace)
+#wifi.show_3D_trace(predict, real_trace=real_trace)
 
 #K-PLDA
 #predict, accuracy = wifi.plda_reg(fingerprint_rssi, offline_label, fingerprint_position, result, real_trace)

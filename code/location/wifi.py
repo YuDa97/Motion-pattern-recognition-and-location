@@ -20,6 +20,7 @@ from sklearn.multioutput import MultiOutputRegressor
 from sklearn.neural_network import MLPRegressor
 import heapq
 from sklearn.preprocessing import MinMaxScaler
+from mpl_toolkits.mplot3d import Axes3D
 # import plda
 from sklearn.decomposition import PCA
 plt.rcParams['font.sans-serif'] = ['SimHei']
@@ -173,15 +174,15 @@ class Model(object):
 
     # 选取信号最强的num个rssi作为匹配
     def wknn_strong_signal_reg(self, offline_rss, offline_location, online_rss, online_location):
-        num = 8
-        k = 3
+        num = 15
+        k = 6
         rssi_length = offline_rss.shape[1]
         knn_reg = neighbors.KNeighborsRegressor(n_neighbors=k, weights='distance', metric='euclidean')
 
         limited_location = None
 
         for rssi in online_rss:
-            keys = np.argsort(rssi)[(rssi_length - num):]
+            keys = np.argsort(rssi)[(rssi_length - num):] #选出信号强度最大的前num个AP索引
             # keys = np.argsort(rssi)[:num]
             rssi = rssi.reshape(1, rssi_length)
             limited_online_rssi = rssi[:,keys] # from small to big
@@ -206,7 +207,7 @@ class Model(object):
     
     # wknn regression
     def wknn_reg(self, offline_rss, offline_location, online_rss, online_location):
-        k = 3
+        k = 5
         wknn_reg = neighbors.KNeighborsRegressor(n_neighbors=k, weights='distance', metric='euclidean')
         predict = wknn_reg.fit(offline_rss, offline_location).predict(online_rss)
         accuracy = self.ave_accuracy(predict, online_location)
@@ -216,11 +217,14 @@ class Model(object):
     def svm_reg(self, offline_rss, offline_location, online_rss, online_location):
         clf_x = svm.SVR(C=1000, gamma=0.01)
         clf_y = svm.SVR(C=1000, gamma=0.01)
+        clf_z = svm.SVR(C=1000, gamma=0.01)
         clf_x.fit(offline_rss, offline_location[:, 0])
         clf_y.fit(offline_rss, offline_location[:, 1])
+        clf_z.fit(offline_rss, offline_location[:, 2])
         x = clf_x.predict(online_rss)
         y = clf_y.predict(online_rss)
-        predict = np.column_stack((x, y))
+        z = clf_z.predict(online_rss)
+        predict = np.column_stack((x, y, z))
         accuracy = self.ave_accuracy(predict, online_location)
         return predict, accuracy
     
@@ -511,8 +515,11 @@ class Model(object):
             plt.xticks(range(0, length, int(length/5))) # 保证刻度为整数
             plt.show()
 
-    # 显示运动轨迹图
+    
     def show_trace(self, predict_trace, **kw):
+        '''
+        显示二维运动轨迹图
+        '''
         from matplotlib import rcParams
         config = {
             "font.family":'Times New Roman',  # 设置字体类型
@@ -546,6 +553,53 @@ class Model(object):
         handles.append(l2)
         labels.append('WiFi predicting')
         plt.scatter(x, y, c ='r')
+        plt.legend(handles=handles ,labels=labels, loc='best', fontsize = 20)
+        plt.xticks(fontsize=18) #设置坐标轴刻度大小
+        plt.yticks(fontsize=18)
+        plt.show()
+        #plt.savefig('E:/动态定位/PDR+WIFI+EKF/location-master/Figures/wifi_limited.jpg',format='jpg',bbox_inches = 'tight',dpi=300)
+
+    def show_3D_trace(self, predict_trace, **kw):
+        '''
+        显示三维运动轨迹图
+        '''
+        from matplotlib import rcParams
+        config = {
+            "font.family":'Times New Roman',  # 设置字体类型
+            #     "mathtext.fontset":'stix',
+                }
+        rcParams.update(config)
+        fig = plt.figure()
+        ax = fig.gca(projection='3d')
+        plt.grid()
+        handles = []
+        labels = []
+        if 'real_trace' in kw:
+            real_trace = kw['real_trace'].T
+            trace_x = real_trace[0]
+            trace_y = real_trace[1]
+            trace_z = real_trace[2]
+            l1, = ax.plot(trace_x, trace_y, trace_z,'o')
+            handles.append(l1)
+            labels.append('Real tracks')
+            #for k in range(0, len(trace_x)):
+            #    plt.annotate(k, xy=(trace_x[k], trace_y[k]), xytext=(trace_x[k]+0.1,trace_y[k]+0.1), color='green')
+
+        predict = predict_trace.T
+        x = predict[0]
+        y = predict[1]
+        z = predict[2]
+
+        #for k in range(0, len(x)):
+        #    plt.annotate(k, xy=(x[k], y[k]), xytext=(x[k]+0.1,y[k]+0.1))
+        
+        ax.set_xlabel('X', fontsize=20)#设置横纵坐标标签
+        ax.set_ylabel('Y', fontsize=20)
+        ax.set_zlabel('Z', fontsize=20)
+        l2, = ax.plot(x, y, z, 'o')
+        handles.append(l2)
+        labels.append('WiFi predicting')
+        #plt.scatter(x, y, c ='r')
         plt.legend(handles=handles ,labels=labels, loc='best', fontsize = 20)
         plt.xticks(fontsize=18) #设置坐标轴刻度大小
         plt.yticks(fontsize=18)
