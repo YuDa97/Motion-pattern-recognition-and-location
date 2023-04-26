@@ -34,13 +34,13 @@ def save_load_remainFeature(function, path, remain_features=None):
         return
 # 运动模式识别部分
 ## 数据准备
-train_path = 'E:/motion sense/Motion-pattern-recognition/data/TrainData'
-test_path = 'E:/motion sense/Motion-pattern-recognition/data/TestData/exp1'
-realTrace_path = 'E:/motion sense/Motion-pattern-recognition/data/TestData/test_coordinate.csv'
+train_path = "./data/TrainData"
+test_path = './data/FuseLocationTestData/exp2'
+realTrace_path = './data/FuseLocationTestData/test_coordinate.csv'
 # 保存或加载lgb筛选出的特征
-save_load_path = 'E:/motion sense/Motion-pattern-recognition/code/RemainFeature/lgb_select_feature.xlsx' 
+save_load_path = './code/RemainFeature/lgb_select_feature.xlsx' 
 # 训练好的CNN参数
-CNNParameter_Path = 'E:/motion sense/Motion-pattern-recognition/code/CNNParameter/net_2conv_3KernelSize_100Batch.pkl' 
+CNNParameter_Path = './code/CNNParameter/net_2conv_3KernelSize_100Batch.pkl' 
 freq = 25 # 数据采样频率是25Hz
 label_coding = {'stand': 0, 'walk': 1, 'up': 2, 'down': 3}
 feature_num = 44

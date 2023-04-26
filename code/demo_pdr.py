@@ -12,9 +12,9 @@ import os
 freq = 25
 init_time = 3
 init_data = freq * init_time # 初始化数据
-path = '/home/yuda/Motion-pattern-recognition/data/TestData'
-walking_data_file = path + '/exp1/pdr_data.csv'
-real_trace_file = path + '/test_coordinate.csv'
+path = "./data"
+walking_data_file = path + "/FuseLocationTestData/exp2/pdr_data.csv"
+real_trace_file = path + "/FuseLocationTestData/test_coordinate.csv"
 
 real_trace = pd.read_csv(real_trace_file).loc[:, 'x':'z'].values # 真实轨迹
 
@@ -99,7 +99,7 @@ print('steps:', len(steps))
 #pdr_mean_accuracy = np.sqrt(np.mean(np.sum((pdr_test_result - real_trace)**2, 1)))*0.62
 #print("PDR平均误差:{:.2f}".format(pdr_mean_accuracy))
 #pdr.show_trace(frequency=25, walkType='normal',\
-#                offset=-np.pi/2, initPosition=(0,0,0),\
+#                offset=0, initPosition=(0,0,0),\
 #               real_trace=real_trace)
 
 

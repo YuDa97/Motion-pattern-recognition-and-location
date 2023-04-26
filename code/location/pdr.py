@@ -98,7 +98,7 @@ class Model(object):
         valley_acceleration = -1 #谷值阈值
         valleyWin_scale = 37 # 谷值窗口宽度
         # 峰值间隔(s)
-        min_interval = 0.4 if walkType=='normal' else 2 # 'abnormal
+        min_interval = 0.5 if walkType=='normal' else 2 # 'abnormal
         # max_interval = 1
         # 计算步数
         steps = []
@@ -197,7 +197,10 @@ class Model(object):
                 w_a_vertical = self.a_vertical[w_start: w_end]
                 delt_v = integrate.simps(w_a_vertical, t)
                 delt_h = np.abs(delt_v * delt_t)
-                delt_x = (hypoten_length**2 - delt_h**2)**(1/2)
+                if hypoten_length > delt_h:
+                    delt_x = (hypoten_length**2 - delt_h**2)**(1/2)
+                else:
+                    delt_x = delt_h / 2
                 
             else:
                 print("窗口内的数据不满足15个数据点条件,无法使用CNN预测")
@@ -251,6 +254,8 @@ class Model(object):
             v = steps[i]
             index = v['index']
             pattern = v['m_pattern']
+            if index == 1407:
+                print(v)
             # 给CNN提供两步间的时间
             if i > 0:
                 last_v = steps[i-1]
@@ -259,6 +264,8 @@ class Model(object):
             yaw_range = yaw[int(index-slide):int(index+slide)]
             theta = np.mean(yaw_range) + bias
             angle.append(theta)
+            #if np.isnan(x):
+            #    print(x)
             if pattern == 1: # 若为行走
                 length = self.step_stride(v, model="NSL")
                 length = round(length/0.6, 2)
@@ -515,12 +522,12 @@ class Model(object):
             offset = 0
         if 'predictPattern' in kw:
             x, y, z, _, _ = self.pdr_position(frequency=frequency, walkType=walkType, \
-                        offset = 0,initPosition=initPosition,\
+                        offset = offset,initPosition=initPosition,\
                         fuse_oritation = False, \
                         predictPattern=kw['predictPattern'], m_WindowWide=kw['m_WindowWide'])
         else:
             x, y, z, _, _ = self.pdr_position(frequency=frequency, walkType=walkType, \
-                        offset = 0,initPosition=initPosition, \
+                        offset = offset,initPosition=initPosition, \
                         fuse_oritation = False)
         
                 
