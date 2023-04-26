@@ -33,16 +33,14 @@ class Model(object):
        ,observation_matrices
        ,transition_covariance
        ,observation_covariance
-       
-    #    ,testing
         ):
 
         conv_length = len(transition_states)-1
 
         # 状态参数个数
         initial_state = transition_states[0] 
-        state_parameters_num = initial_state.shape[0] #3
-        # 单个状态参数数组，形式为：[[x],[y],[theta]]
+        state_parameters_num = initial_state.shape[0] #4
+        # 单个状态参数数组，形式为：[[x],[y],[z],[theta]]
         state_parameters = [0]*state_parameters_num
         temp = []
         for i in range(state_parameters_num):

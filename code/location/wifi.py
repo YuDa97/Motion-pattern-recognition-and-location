@@ -125,11 +125,11 @@ class Model(object):
 
     # 标准差
     def square_accuracy(self, predictions, labels):
-        accuracy = np.sqrt(np.mean(np.sum((predictions - labels)**2, 1)))*0.62
+        accuracy = np.sqrt(np.mean(np.sum((predictions - labels)**2, 1)))*0.6
         return round(accuracy, 3)
 
     def ave_accuracy(self, predictions, labels):
-        accuracy = np.mean((np.sum((predictions - labels)**2, 1))**0.5)*0.62
+        accuracy = np.mean((np.sum((predictions - labels)**2, 1))**0.5)*0.6
         return round(accuracy, 3)
     
     
@@ -174,15 +174,15 @@ class Model(object):
 
     # 选取信号最强的num个rssi作为匹配
     def wknn_strong_signal_reg(self, offline_rss, offline_location, online_rss, online_location):
-        num = 15
-        k = 6
+        num = 8
+        k = 3
         rssi_length = offline_rss.shape[1]
         knn_reg = neighbors.KNeighborsRegressor(n_neighbors=k, weights='distance', metric='euclidean')
 
         limited_location = None
 
         for rssi in online_rss:
-            keys = np.argsort(rssi)[(rssi_length - num):] #选出信号强度最大的前num个AP索引
+            keys = np.argsort(rssi)[(rssi_length - num):]
             # keys = np.argsort(rssi)[:num]
             rssi = rssi.reshape(1, rssi_length)
             limited_online_rssi = rssi[:,keys] # from small to big
@@ -207,7 +207,7 @@ class Model(object):
     
     # wknn regression
     def wknn_reg(self, offline_rss, offline_location, online_rss, online_location):
-        k = 5
+        k = 3
         wknn_reg = neighbors.KNeighborsRegressor(n_neighbors=k, weights='distance', metric='euclidean')
         predict = wknn_reg.fit(offline_rss, offline_location).predict(online_rss)
         accuracy = self.ave_accuracy(predict, online_location)
@@ -223,8 +223,7 @@ class Model(object):
         clf_z.fit(offline_rss, offline_location[:, 2])
         x = clf_x.predict(online_rss)
         y = clf_y.predict(online_rss)
-        z = clf_z.predict(online_rss)
-        predict = np.column_stack((x, y, z))
+        predict = np.column_stack((x, y))
         accuracy = self.ave_accuracy(predict, online_location)
         return predict, accuracy
     
@@ -515,7 +514,7 @@ class Model(object):
             plt.xticks(range(0, length, int(length/5))) # 保证刻度为整数
             plt.show()
 
-    
+    # 显示运动轨迹图
     def show_trace(self, predict_trace, **kw):
         '''
         显示二维运动轨迹图

@@ -4,16 +4,23 @@ import recognition.build_dataset as bd
 # 数据处理
 import numpy as np
 import pandas as pd
+# 数据平滑
+from recognition.build_dataset import smooth_data
+# 分类报告
+from sklearn import metrics
 # 特征选择
 from recognition.feature_selector import FeatureSelector
 # 分类器
 from sklearn.svm import SVC
+# WiFi定位
+import location.wifi as wifi
 # pdr定位
 import location.pdr as pdr
-# 数据平滑
-from recognition.build_dataset import smooth_data
-# 分类报告
-from sklearn import metrics 
+# EKF融合定位
+import location.fusion as fusion
+# 画图
+import matplotlib.pyplot as plt
+
 def save_load_remainFeature(function, path, remain_features=None):
     '''
     保存或加载筛选出的特征
@@ -32,6 +39,14 @@ def save_load_remainFeature(function, path, remain_features=None):
     else:
         print("请输入save或load")
         return
+
+def ave_accuracy(predictions, labels):
+    '''
+    计算欧氏距离平均误差
+    '''
+    accuracy = np.mean((np.sum((predictions - labels)**2, 1))**0.5)*0.6
+    return round(accuracy, 3)
+
 # 运动模式识别部分
 ## 数据准备
 train_path = "./data/TrainData"
@@ -48,13 +63,6 @@ training_dimention = feature_num + 1
 startidx = 75 # 舍掉前75个点
 window_wide = int(1.5 * freq) # 滑动窗口宽度
 
-'''
-#未启用
-### 对测试集和加速度小波变换后进行频域分析
-test_res_acc = bd.creat_anomalies_detect_dataset(test_path)
-cwtmatr ,frequencies = bd.cwt_data(test_res_acc)
-anomalies_index = bd.anomalies_detect(abs(cwtmatr[8]), window_wide,showFigure=False) # 发生突变的窗口下标
-'''
 ### 读入数据
 train_set, all_feature_name = bd.creat_training_set(train_path, label_coding, startidx, window_wide, training_dimention)
 test_set = bd.creat_testing_set(test_path, label_coding, startidx, freq, window_wide, training_dimention)
@@ -94,6 +102,25 @@ svc.fit(train_x,train_y)
 predictions_svc = svc.predict(test_x)
 print('SVM分类报告: \n', metrics.classification_report(true_y, predictions_svc ))
 
+# wifi定位
+## 数据准备
+TP_path = "./data/WiFi/TP.csv"
+RP_path = "./data/WiFi/RP.csv"
+
+TP_df = pd.read_csv(TP_path)
+RP_df = pd.read_csv(RP_path)
+
+RP_rssi = RP_df.iloc[:, 3:].values # RP的RSSI
+RP_position = RP_df.iloc[:, 0:3].values # RP位置
+TP_rssi = TP_df.iloc[:, 3:].values # TP的RSSI
+
+
+## 实例化模型并定位
+wifi = wifi.Model(RP_rssi)
+wifi_predict, wifi_accuracy = wifi.wknn_strong_signal_reg(RP_rssi, RP_position, TP_rssi, realTrace)
+#wifi.show_3D_trace(wifi_predict, real_trace=realTrace)
+print(f'WiFi平均定位误差:{wifi_accuracy} m')
+
 # pdr定位
 ## 数据准备
 walking_data_file = test_path + '/pdr_data.csv'
@@ -111,21 +138,146 @@ rotation = smooth_data(rotation)
 gyro = smooth_data(gyro)
 
 pdr = pdr.Model(linear, gravity, rotation, gyro, CNNParameterPath=CNNParameter_Path)
-x, y, z, _, _ = pdr.pdr_position(frequency=freq, walkType='normal', \
+X_pdr, Y_pdr, Z_pdr, strides, angle, delt_h = pdr.pdr_position(frequency=freq, walkType='normal', \
                         offset = 0,initPosition=(0, 0, 0),\
                         fuse_oritation = False, \
                         predictPattern=predictions_svc, m_WindowWide=window_wide)
-pdr.show_trace(frequency=freq, walkType='normal', initPosition=(0, 0, 0),\
-                predictPattern=predictions_svc, m_WindowWide=window_wide,\
-                real_trace=realTrace)
+#pdr.show_trace(frequency=freq, walkType='normal', initPosition=(0, 0, 0),\
+#                predictPattern=predictions_svc, m_WindowWide=window_wide,\
+#                real_trace=realTrace)
 
-x = np.array(x).reshape(-1, 1)
-y = np.array(y).reshape(-1, 1)
-z = np.array(z).reshape(-1, 1)
+x = np.array(X_pdr).reshape(-1, 1)
+y = np.array(Y_pdr).reshape(-1, 1)
+z = np.array(Z_pdr).reshape(-1, 1)
 pdr_predict = np.concatenate((x, y, z), axis=1)
 
-power_2 = (pdr_predict[0:realTrace.shape[0], :] - realTrace)**2
-Sum = np.sum(power_2, axis=1)
-mean_euc_error = np.mean(np.power(Sum, 1/2))
+mean_pdr_error = ave_accuracy(pdr_predict, realTrace)
 
-print("定位平均误差: ", mean_euc_error*0.6)
+print(f"PDR平均定位误差:{mean_pdr_error} m")
+
+# EKF融合定位
+## 准备数据
+X_real, Y_real, Z_real = realTrace[:,0], realTrace[:,1], realTrace[:,2]
+X_wifi, Y_wifi, Z_wifi = wifi_predict[:,0], wifi_predict[:,1], wifi_predict[:,2]
+L = strides #步长
+## 超参数设置
+sigma_wifi = 4.1
+sigma_pdr = .3
+sigma_yaw = 15/360
+
+fusion = fusion.Model()
+theta_counter = -1
+def state_conv(parameters_arr):
+    global theta_counter
+    theta_counter += 1
+    x = parameters_arr[0]
+    y = parameters_arr[1]
+    z = parameters_arr[2]
+    theta = parameters_arr[3]
+    return x+L[theta_counter]*np.sin(theta), y+L[theta_counter]*np.cos(theta),\
+             z+delt_h[theta_counter], angle[theta_counter]
+
+# 观测矩阵(zk)，目前不考虑起始点（设定为0，0），因此wifi数组长度比实际位置长度少1
+observation_states = []
+for i in range(len(angle)):
+    x = X_wifi[i]
+    y = Y_wifi[i]
+    z = Z_wifi[i]
+    observation_states.append(np.matrix([
+        [x], [y], [z], [L[i]], [angle[i]]
+    ]))
+
+#状态矩阵（xk)
+transition_states = []
+for k, v in enumerate(angle):
+    x = X_pdr[k]
+    y = Y_pdr[k]
+    z = Z_pdr[k]
+    theta = angle[k]
+    V = np.matrix([[x],[y],[z],[theta]])
+    transition_states.append(V) #数组里保存着4*1的矩阵，对应4个状态（pdr输出的x,y,z与方向角）
+
+# 状态协方差矩阵（初始状态不是非常重要，经过迭代会逼近真实状态）
+P = np.matrix([[1, 0, 0, 0],
+               [0, 1, 0, 0],
+               [0, 0, 1, 0],
+               [0, 0, 0, 1]])
+# 观测矩阵
+H = np.matrix([[1, 0, 0, 0],
+               [0, 1, 0, 0],
+               [0, 0, 1, 0],
+               [0, 0, 0, 0],
+               [0, 0, 0, 1]])
+# 状态转移协方差矩阵
+Q = np.matrix([[sigma_pdr**2, 0, 0, 0],
+               [0, sigma_pdr**2, 0, 0],
+               [0, 0, sigma_pdr**2, 0],
+               [0, 0, 0, sigma_yaw**2]])
+# 观测噪声方差
+R = np.matrix([[sigma_wifi**2, 0, 0, 0],
+               [0, sigma_wifi**2, 0, 0],
+               [0, 0, sigma_wifi**2, 0],
+               [0, 0, 0, 0],
+               [0, 0, 0, sigma_yaw**2]])
+#状态转移雅各比行列式
+def jacobF_func(i):
+    return np.matrix([[1, 0, 0, L[i]*np.cos(angle[i])],
+                      [0, 1, 0, -L[i]*np.sin(angle[i])],
+                      [0, 0, 0, 1],
+                      [0, 0, 0, 1]])
+
+S = fusion.ekf2d(
+    transition_states = transition_states # 状态矩阵
+   ,observation_states = observation_states # 观测数组
+   ,transition_func = state_conv # 状态预测函数（传入参数为数组格式，该数组包含了用到的状态转换遇到的数据）
+   ,jacobF_func = jacobF_func # 一阶线性的状态转换公式
+   ,initial_state_covariance = P
+   ,observation_matrices = H
+   ,transition_covariance = Q
+   ,observation_covariance = R
+)
+
+X_ekf = []
+Y_ekf = []
+
+for v in S:
+    X_ekf.append(v[0, 0])
+    Y_ekf.append(v[1, 0])
+
+ekf_predict = np.concatenate((np.array(X_ekf).reshape(len(X_ekf), 1),
+                              np.array(Y_ekf).reshape(len(Y_ekf), 1)), axis=1)
+accuracy = fusion.square_accuracy(ekf_predict, realTrace)
+
+print('ekf accuracy:', accuracy, 'm')
+ekf_error = np.sqrt(np.sum((ekf_predict - realTrace)**2, 1))*0.62
+x = X_ekf
+y = Y_ekf
+
+## 将数据写入excel
+ekf_error_df = pd.DataFrame(ekf_error)
+writer = pd.ExcelWriter('e:/动态定位/PDR+WIFI+EKF/location-master/results/ekf_error.xlsx')  #创建名称为lstm调参报告的excel表格
+ekf_error_df.to_excel(writer,'page_1',float_format='%.5f')  #float_format 控制精度，将data_df写到hhh表格的第一页中。若多个文件，可以在page_2中写入
+writer.save() 
+
+## 画图
+from matplotlib import rcParams
+config = {
+        "font.family":'Times New Roman',  # 设置字体类型
+            #     "mathtext.fontset":'stix',
+        }
+rcParams.update(config)
+plt.figure(figsize=(15,8),dpi=300)
+#for k in range(0, len(x)):
+#    plt.annotate(k, xy=(x[k], y[k]), xytext=(x[k]+0.1,y[k]+0.1))
+plt.grid()
+plt.plot(X_real, Y_real, 'o-', label='Real tracks')
+plt.plot(X_wifi, Y_wifi, 'r.', label='WiFi positioning')
+plt.plot(X_pdr, Y_pdr, 'o-', label='PDR positioning')
+plt.plot(X_ekf, Y_ekf, 'o-', label='EKF positioning')
+ax=plt.gca()
+ax.set_xlabel('X', fontsize=20)#设置横纵坐标标签
+ax.set_ylabel('Y', fontsize=20)
+plt.xticks(fontsize=18) #设置坐标轴刻度大小
+plt.yticks(fontsize=18)
+plt.legend(fontsize = 20)
+#plt.savefig('E:/动态定位/PDR+WIFI+EKF/location-master/Figures/ekf.jpg',format='jpg',bbox_inches = 'tight',dpi=300)

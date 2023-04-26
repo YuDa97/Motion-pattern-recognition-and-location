@@ -166,8 +166,10 @@ class Model(object):
             return np.power(v['acceleration'] - v['v_acceleration'], 1/4) * k
         elif model == "CNN":
             cnn = CNN()
-            cnn.load_state_dict(torch.load(self.CNNParameterPath))
-            
+            if torch.cuda.is_available():
+                cnn.load_state_dict(torch.load(self.CNNParameterPath))
+            else:
+                cnn.load_state_dict(torch.load(self.CNNParameterPath, map_location='cpu'))
             w = 14 # 窗口宽度
             if v['index'] > 7 and v['index'] + int(w/2) + 1 < self.linear.shape[0]:
                 w_start = v['index'] - int(w/2) # 窗口起始索引
@@ -249,13 +251,12 @@ class Model(object):
         position_z.append(z)
         strides = []#记录步长
         angle = [offset]
+        Delt_H = [] #记录高度
         nums = len(steps)
         for i in range(nums):
             v = steps[i]
             index = v['index']
             pattern = v['m_pattern']
-            if index == 1407:
-                print(v)
             # 给CNN提供两步间的时间
             if i > 0:
                 last_v = steps[i-1]
@@ -264,12 +265,11 @@ class Model(object):
             yaw_range = yaw[int(index-slide):int(index+slide)]
             theta = np.mean(yaw_range) + bias
             angle.append(theta)
-            #if np.isnan(x):
-            #    print(x)
-            if pattern == 1: # 若为行走
+            if pattern == 1: # 若为平面行走
                 length = self.step_stride(v, model="NSL")
                 length = round(length/0.6, 2)
                 strides.append(length)
+                Delt_H.append(0)
                 if len(angle) >= 2:
                     if np.abs(angle[-1] - angle[-2])*180/np.pi < 4:
                         angle[-1] = angle[-2]
@@ -278,12 +278,14 @@ class Model(object):
                 position_x.append(x)
                 position_y.append(y)
                 position_z.append(z)
+                
             elif pattern == 3: # 若为下楼
                 hypoten_length, delt_h, delt_x = self.step_stride(v, model="CNN", time=t) # 分别斜边长、高度变化、x轴变化
                 hypoten_length = round(hypoten_length/0.6, 2) #变到一个单位
                 delt_h = round(delt_h/0.6, 2) 
                 delt_x = round(delt_x/0.6, 2) 
-                strides.append(hypoten_length)
+                strides.append(delt_x)
+                Delt_H.append(-delt_h)
                 if len(angle) >= 2:
                     if np.abs(angle[-1] - angle[-2])*180/np.pi < 4:
                         angle[-1] = angle[-2]
@@ -298,7 +300,8 @@ class Model(object):
                 hypoten_length = round(hypoten_length/0.6, 2) #变到一个单位
                 delt_h = round(delt_h/0.6, 2) 
                 delt_x = round(delt_x/0.6, 2) 
-                strides.append(hypoten_length)
+                strides.append(delt_x)
+                Delt_H.append(delt_h)
                 if len(angle) >= 2:
                     if np.abs(angle[-1] - angle[-2])*180/np.pi < 4:
                         angle[-1] = angle[-2]
@@ -310,6 +313,7 @@ class Model(object):
                 position_z.append(z)
             else: # 静止
                 strides.append(0)
+                Delt_H.append(0)
                 x = x
                 y = y
                 z = z
@@ -324,7 +328,7 @@ class Model(object):
             else:
                 position_x[i] = -position_x[i]
         # 步长计入一个状态中，最后一个位置没有下一步，因此步长记为0
-        return position_x, position_y, position_z, strides + [0], angle
+        return position_x, position_y, position_z, strides + [0], angle, Delt_H
 
 
     def show_steps(self, frequency=25, walkType='normal'):
