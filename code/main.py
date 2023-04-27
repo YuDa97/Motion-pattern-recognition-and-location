@@ -20,6 +20,7 @@ import location.pdr as pdr
 import location.fusion as fusion
 # 画图
 import matplotlib.pyplot as plt
+from matplotlib import rcParams
 
 def save_load_remainFeature(function, path, remain_features=None):
     '''
@@ -164,7 +165,7 @@ L = strides #步长
 sigma_wifi = 4.1
 sigma_pdr = .3
 sigma_yaw = 15/360
-
+sigma_h = .3
 fusion = fusion.Model()
 theta_counter = -1
 def state_conv(parameters_arr):
@@ -211,19 +212,19 @@ H = np.matrix([[1, 0, 0, 0],
 # 状态转移协方差矩阵
 Q = np.matrix([[sigma_pdr**2, 0, 0, 0],
                [0, sigma_pdr**2, 0, 0],
-               [0, 0, sigma_pdr**2, 0],
+               [0, 0, sigma_h**2, 0],
                [0, 0, 0, sigma_yaw**2]])
 # 观测噪声方差
-R = np.matrix([[sigma_wifi**2, 0, 0, 0],
-               [0, sigma_wifi**2, 0, 0],
-               [0, 0, sigma_wifi**2, 0],
-               [0, 0, 0, 0],
-               [0, 0, 0, sigma_yaw**2]])
+R = np.matrix([[sigma_wifi**2, 0, 0, 0, 0],
+               [0, sigma_wifi**2, 0, 0, 0],
+               [0, 0, sigma_wifi**2, 0, 0],
+               [0, 0, 0, 0, 0],
+               [0, 0, 0, 0, sigma_yaw**2]])
 #状态转移雅各比行列式
 def jacobF_func(i):
     return np.matrix([[1, 0, 0, L[i]*np.cos(angle[i])],
                       [0, 1, 0, -L[i]*np.sin(angle[i])],
-                      [0, 0, 0, 1],
+                      [0, 0, 0, 0],
                       [0, 0, 0, 1]])
 
 S = fusion.ekf2d(
@@ -239,45 +240,43 @@ S = fusion.ekf2d(
 
 X_ekf = []
 Y_ekf = []
+Z_ekf = []
 
 for v in S:
     X_ekf.append(v[0, 0])
     Y_ekf.append(v[1, 0])
+    Z_ekf.append(v[2, 0])
 
 ekf_predict = np.concatenate((np.array(X_ekf).reshape(len(X_ekf), 1),
-                              np.array(Y_ekf).reshape(len(Y_ekf), 1)), axis=1)
-accuracy = fusion.square_accuracy(ekf_predict, realTrace)
+                              np.array(Y_ekf).reshape(len(Y_ekf), 1),
+                              np.array(Z_ekf).reshape(len(Z_ekf), 1)), axis=1)
 
-print('ekf accuracy:', accuracy, 'm')
-ekf_error = np.sqrt(np.sum((ekf_predict - realTrace)**2, 1))*0.62
-x = X_ekf
-y = Y_ekf
+accuracy = fusion.ave_accuracy(ekf_predict, realTrace)
 
-## 将数据写入excel
-ekf_error_df = pd.DataFrame(ekf_error)
-writer = pd.ExcelWriter('e:/动态定位/PDR+WIFI+EKF/location-master/results/ekf_error.xlsx')  #创建名称为lstm调参报告的excel表格
-ekf_error_df.to_excel(writer,'page_1',float_format='%.5f')  #float_format 控制精度，将data_df写到hhh表格的第一页中。若多个文件，可以在page_2中写入
-writer.save() 
 
-## 画图
-from matplotlib import rcParams
+mean_ekf_error = ave_accuracy(ekf_predict, realTrace)
+print(f'ekf 平均定位误差:{mean_ekf_error} m')
+fusion.show_3D_trace(ekf_predict, real_trace=realTrace)
+
+## 画所有定位轨迹图
+
 config = {
         "font.family":'Times New Roman',  # 设置字体类型
             #     "mathtext.fontset":'stix',
         }
 rcParams.update(config)
-plt.figure(figsize=(15,8),dpi=300)
-#for k in range(0, len(x)):
-#    plt.annotate(k, xy=(x[k], y[k]), xytext=(x[k]+0.1,y[k]+0.1))
+fig = plt.figure()
+ax = fig.gca(projection='3d')
 plt.grid()
-plt.plot(X_real, Y_real, 'o-', label='Real tracks')
-plt.plot(X_wifi, Y_wifi, 'r.', label='WiFi positioning')
-plt.plot(X_pdr, Y_pdr, 'o-', label='PDR positioning')
-plt.plot(X_ekf, Y_ekf, 'o-', label='EKF positioning')
-ax=plt.gca()
+ax.plot(X_real, Y_real, Z_real, 'o-', label='Real tracks')
+ax.plot(X_wifi, Y_wifi, Z_wifi, 'r.', label='WiFi positioning')
+ax.plot(X_pdr, Y_pdr, Z_pdr, 'o-', label='PDR positioning')
+ax.plot(X_ekf, Y_ekf, Z_ekf, 'o-', label='EKF positioning')
+
 ax.set_xlabel('X', fontsize=20)#设置横纵坐标标签
 ax.set_ylabel('Y', fontsize=20)
 plt.xticks(fontsize=18) #设置坐标轴刻度大小
 plt.yticks(fontsize=18)
 plt.legend(fontsize = 20)
-#plt.savefig('E:/动态定位/PDR+WIFI+EKF/location-master/Figures/ekf.jpg',format='jpg',bbox_inches = 'tight',dpi=300)
+plt.show()
+#plt.savefig('./Figure/all_location_trace.jpg',format='jpg',bbox_inches = 'tight',dpi=300)

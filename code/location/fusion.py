@@ -95,8 +95,55 @@ class Model(object):
             K = P_ * H.T * np.linalg.pinv(H * P_ * H.T + R) #卡尔曼增益系数
             Z = np.matrix([[observation_parameters[k][i+1]] for k in range(observation_parameters_num)]) # 将wifi定位作为新息
             X = X_ + K * (Z - H * X_)#对pdr进行修正
-            P = (np.eye(3) - K * H) * P_#更新
+            P = (np.eye(4) - K * H) * P_#更新
             k_list.append(K)
             S.append(X)
         
         return S
+    
+    def show_3D_trace(self, predict_trace, **kw):
+        '''
+        显示三维运动轨迹图
+        '''
+        from matplotlib import rcParams
+        config = {
+            "font.family":'Times New Roman',  # 设置字体类型
+            #     "mathtext.fontset":'stix',
+                }
+        rcParams.update(config)
+        fig = plt.figure()
+        ax = fig.gca(projection='3d')
+        plt.grid()
+        handles = []
+        labels = []
+        if 'real_trace' in kw:
+            real_trace = kw['real_trace'].T
+            trace_x = real_trace[0]
+            trace_y = real_trace[1]
+            trace_z = real_trace[2]
+            l1, = ax.plot(trace_x, trace_y, trace_z,'o')
+            handles.append(l1)
+            labels.append('Real tracks')
+            #for k in range(0, len(trace_x)):
+            #    plt.annotate(k, xy=(trace_x[k], trace_y[k]), xytext=(trace_x[k]+0.1,trace_y[k]+0.1), color='green')
+
+        predict = predict_trace.T
+        x = predict[0]
+        y = predict[1]
+        z = predict[2]
+
+        #for k in range(0, len(x)):
+        #    plt.annotate(k, xy=(x[k], y[k]), xytext=(x[k]+0.1,y[k]+0.1))
+        
+        ax.set_xlabel('X', fontsize=20)#设置横纵坐标标签
+        ax.set_ylabel('Y', fontsize=20)
+        ax.set_zlabel('Z', fontsize=20)
+        l2, = ax.plot(x, y, z, '-o')
+        handles.append(l2)
+        labels.append('EKF predicting')
+        #plt.scatter(x, y, c ='r')
+        plt.legend(handles=handles ,labels=labels, loc='best', fontsize = 20)
+        plt.xticks(fontsize=18) #设置坐标轴刻度大小
+        plt.yticks(fontsize=18)
+        plt.show()
+        #plt.savefig('./Figure/ekf_location_trace.jpg',format='jpg',bbox_inches = 'tight',dpi=300)

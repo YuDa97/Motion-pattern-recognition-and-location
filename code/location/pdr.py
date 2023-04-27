@@ -548,5 +548,5 @@ class Model(object):
         plt.legend(handles=handles,labels=labels,loc='best',fontsize = 20)
         ax.tick_params(labelsize=14) #设置坐标轴刻度大小
         plt.show()
-        #plt.savefig('E:/动态定位/PDR+WIFI+EKF/location-master/Figures/raw_pdr.jpg',bbox_inches = 'tight')
+        #plt.savefig('./Figure/pdr_location_trace.jpg',bbox_inches = 'tight')
         

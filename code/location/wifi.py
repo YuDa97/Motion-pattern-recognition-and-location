@@ -603,4 +603,4 @@ class Model(object):
         plt.xticks(fontsize=18) #设置坐标轴刻度大小
         plt.yticks(fontsize=18)
         plt.show()
-        #plt.savefig('E:/动态定位/PDR+WIFI+EKF/location-master/Figures/wifi_limited.jpg',format='jpg',bbox_inches = 'tight',dpi=300)
+        #plt.savefig('./Figure/wifi_location_trace.jpg',format='jpg',bbox_inches = 'tight',dpi=300)
