@@ -40,8 +40,8 @@ def cwt_data(data, wavename='cgau8'):
 
 def creat_pattern_dataset(file):
     raw_data = pd.read_csv(file)
-    raw_data = raw_data.drop(['time(ms)', 'RV.heading'], axis=1)
-    raw_data = raw_data.values
+    raw_data = raw_data.drop(['Timestamp', 'Milliseconds'], axis=1)
+    raw_data = raw_data.values[75:]
     smo_data = smooth_data(raw_data)
     
     return raw_data, smo_data
@@ -103,22 +103,28 @@ def plot_time_serise(raw_data, smo_data, cwtmatr, frequencies, res_acc, data_typ
                 'rv': freq_data[:, 12:-1]}
     '''
     config = {
-    "font.family":'Times New Roman',  # 设置字体类型
+    #"font.family":'Times New Roman'  # 设置字体类型
+    #"font.family":'sans-serif',
+    #"font.serif": ['SimSun']
     #     "mathtext.fontset":'stix',
     }
+
     raw_y = raw_feature_index[data_type]
     smo_y = smo_feature_index[data_type]
     # freq_y = freq_feature_index[data_type]
-    rcParams.update(config)
+    #rcParams.update(config)
+    plt.rcParams['font.family'] = ['sans-serif']  
+    plt.rcParams['font.sans-serif'] = ['SimSun']  
+    plt.rcParams['axes.unicode_minus'] = False  
     plt.figure()
     # 时域图，未平滑
-    plt.subplot(3, 2, 1)
+    plt.subplot(2, 1, 1)
     ax=plt.gca()
-    ax.set_xlabel('T', fontsize=20)#设置横纵坐标标签
-    ax.set_ylabel('Values', fontsize=20)
+    ax.set_xlabel('Time(s)', fontsize=20)#设置横纵坐标标签
+    ax.set_ylabel('acc', fontsize=20)
     x = np.arange(1, raw_data.shape[0]+1) # x轴坐标
 
-    plt.plot(x, raw_y[:, 0], label='x axix')
+    plt.plot(x, raw_y[:, 0], label='x axis')
     plt.plot(x, raw_y[:, 1], label='y axis')
     plt.plot(x, raw_y[:, 2], label='z axis')
     plt.xticks(fontsize=18) #设置坐标轴刻度大小
@@ -126,17 +132,17 @@ def plot_time_serise(raw_data, smo_data, cwtmatr, frequencies, res_acc, data_typ
     plt.legend()
     
     # 时域图，平滑
-    plt.subplot(3, 2, 2)
+    plt.subplot(2, 1, 2)
     ax=plt.gca()
-    ax.set_xlabel('T', fontsize=20)#设置横纵坐标标签
-    ax.set_ylabel('Values', fontsize=20)
-    plt.plot(x, smo_y[:, 0], label='x axix')
+    ax.set_xlabel('Time(s)', fontsize=20)#设置横纵坐标标签
+    ax.set_ylabel('acc', fontsize=20)
+    plt.plot(x, smo_y[:, 0], label='x axis')
     plt.plot(x, smo_y[:, 1], label='y axis')
     plt.plot(x, smo_y[:, 2], label='z axis')
     plt.xticks(fontsize=18) #设置坐标轴刻度大小
     plt.yticks(fontsize=18)
     plt.legend()
-    
+    '''
     # 合加速度时域图
     plt.subplot(3, 2, 3)
     ax=plt.gca()
@@ -168,7 +174,9 @@ def plot_time_serise(raw_data, smo_data, cwtmatr, frequencies, res_acc, data_typ
     plt.xticks(fontsize=18) #设置坐标轴刻度大小
     plt.yticks(fontsize=18)
     plt.legend()
+    '''
     plt.show()
+    
 
 
 def slide_window(data, wide, label, time_label=None, freq=25, startidx=75):
@@ -304,7 +312,7 @@ def creat_anomalies_detect_dataset(exp_path):
     return res_acc
 
 if __name__ == "__main__":
-    
+    '''
     train_path = '/home/yuda/Motion-pattern-recognition/data/TrainData'
     test_path = '/home/yuda/Motion-pattern-recognition/data/TestData/exp1'
     freq = 25 # 数据采样频率是25Hz
@@ -323,7 +331,8 @@ if __name__ == "__main__":
     
     '''
     ## 平滑滤波&突变检测调参
-    file_path = '/home/yuda/Motion-pattern-recognition/data/demo/WL2DW0944_0860/motion_data.csv'
+    #file_path = './data/demo/WL2DW0944_0860/motion_data.csv'
+    file_path = './data/TrainData/down/2022-11-20_15-52-15/Accelerometer.csv'
     freq = 25
     window_wide = int(1.5 * freq)
     raw_data, smo_data = creat_pattern_dataset(file_path)
@@ -331,4 +340,4 @@ if __name__ == "__main__":
     cwtmatr ,frequencies = cwt_data(res_acc)
     anomalies_detect(abs(cwtmatr[8]), window_wide, showFigure=True)
     plot_time_serise(raw_data, smo_data, cwtmatr ,frequencies, res_acc, 'acc')
-    '''
+    

@@ -13,7 +13,7 @@ freq = 25
 init_time = 3
 init_data = freq * init_time # 初始化数据
 path = "./data"
-walking_data_file = path + "/FuseLocationTestData/exp2/pdr_data.csv"
+walking_data_file = path + "/FuseLocationTestData/exp5/pdr_data.csv"
 real_trace_file = path + "/FuseLocationTestData/test_coordinate.csv"
 
 real_trace = pd.read_csv(real_trace_file).loc[:, 'x':'z'].values # 真实轨迹

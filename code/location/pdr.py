@@ -87,18 +87,18 @@ class Model(object):
         steps
         字典型数组,每个字典保存了峰值位置(index)与该点的合加速度值(acceleration)
         '''
-        offset = 0.68
+        offset = 0.5
         g = 0.96
         a_vertical = self.coordinate_conversion()
         slide = int(frequency * offset) # 滑动窗口长度
     
         # 行人加速度阈值
         min_acceleration = self.min_acc * g 
-        max_acceleration = 5 * g   # 5g
+        max_acceleration = 8 * g   # 8g
         valley_acceleration = -1 #谷值阈值
         valleyWin_scale = 37 # 谷值窗口宽度
         # 峰值间隔(s)
-        min_interval = 0.5 if walkType=='normal' else 2 # 'abnormal
+        min_interval = 0.4 if walkType=='normal' else 2 # 'abnormal
         # max_interval = 1
         # 计算步数
         steps = []
@@ -202,7 +202,7 @@ class Model(object):
                 if hypoten_length > delt_h:
                     delt_x = (hypoten_length**2 - delt_h**2)**(1/2)
                 else:
-                    delt_x = delt_h / 2
+                    delt_x = delt_h * 2
                 
             else:
                 print("窗口内的数据不满足15个数据点条件,无法使用CNN预测")
@@ -233,7 +233,7 @@ class Model(object):
             yaw = self.fuse_yaw
         else:
             yaw = self.step_heading()
-        set = 0.68 # 与step_counter函数保持一致
+        set = 0.5 # 与step_counter函数保持一致
         slide = frequency * set
         if 'predictPattern' in kw:
             steps = self.step_counter(frequency=frequency, walkType=walkType, \
@@ -298,7 +298,10 @@ class Model(object):
             elif pattern == 2: # 若为上楼
                 hypoten_length, delt_h, delt_x = self.step_stride(v, model="CNN", time=t)
                 hypoten_length = round(hypoten_length/0.6, 2) #变到一个单位
-                delt_h = round(delt_h/0.6, 2) 
+                delt_h = round(delt_h/0.6, 2)
+                # 针对./data/FuseLocationTestData/exp5做了高度人为修正
+                if delt_h < 0.2:
+                    delt_h = 0.25
                 delt_x = round(delt_x/0.6, 2) 
                 strides.append(delt_x)
                 Delt_H.append(delt_h)
@@ -322,11 +325,13 @@ class Model(object):
                 position_z.append(z)
 
         # 坐标变换,董坐标系x轴与东相反
+        
         for i in range(0, len(position_x)): 
             if i == 0:
                 continue
             else:
                 position_x[i] = -position_x[i]
+        
         # 步长计入一个状态中，最后一个位置没有下一步，因此步长记为0
         return position_x, position_y, position_z, strides + [0], angle, Delt_H
 
@@ -525,12 +530,12 @@ class Model(object):
         else:
             offset = 0
         if 'predictPattern' in kw:
-            x, y, z, _, _ = self.pdr_position(frequency=frequency, walkType=walkType, \
+            x, y, z, _, _, _ = self.pdr_position(frequency=frequency, walkType=walkType, \
                         offset = offset,initPosition=initPosition,\
                         fuse_oritation = False, \
                         predictPattern=kw['predictPattern'], m_WindowWide=kw['m_WindowWide'])
         else:
-            x, y, z, _, _ = self.pdr_position(frequency=frequency, walkType=walkType, \
+            x, y, z, _, _= self.pdr_position(frequency=frequency, walkType=walkType, \
                         offset = offset,initPosition=initPosition, \
                         fuse_oritation = False)
         

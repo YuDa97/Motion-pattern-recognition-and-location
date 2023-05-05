@@ -51,10 +51,12 @@ def ave_accuracy(predictions, labels):
 # 运动模式识别部分
 ## 数据准备
 train_path = "./data/TrainData"
-test_path = './data/FuseLocationTestData/exp2'
+supple_train_path = "./data/FuseLocationTestData/" # 将部分连续运动状态下测得的数据用于训练
+supple_train_sets = ["exp1", "exp1.5", "exp2", "exp2.5", "exp3", "exp4", "exp6"] # 使用哪些测试数据补充进训练集
+test_path = './data/FuseLocationTestData/exp5'
 realTrace_path = './data/FuseLocationTestData/test_coordinate.csv'
 # 保存或加载lgb筛选出的特征
-save_load_path = './code/RemainFeature/lgb_select_feature.xlsx' 
+save_load_path = './code/RemainFeature/lgb_select_feature_for_FuseLocationExp5.xlsx' 
 # 训练好的CNN参数
 CNNParameter_Path = './code/CNNParameter/net_2conv_3KernelSize_100Batch.pkl' 
 freq = 25 # 数据采样频率是25Hz
@@ -66,6 +68,12 @@ window_wide = int(1.5 * freq) # 滑动窗口宽度
 
 ### 读入数据
 train_set, all_feature_name = bd.creat_training_set(train_path, label_coding, startidx, window_wide, training_dimention)
+# 补充训练集数据
+for dataset in supple_train_sets:
+    path = supple_train_path + dataset
+    supple_train = bd.creat_testing_set(path, label_coding, startidx, freq, window_wide, training_dimention)
+    train_set = np.concatenate((train_set, supple_train), axis=0)
+
 test_set = bd.creat_testing_set(test_path, label_coding, startidx, freq, window_wide, training_dimention)
 train_x, train_y = train_set[:, 0:feature_num], train_set[:, -1]
 test_x, true_y = test_set[:, 0:feature_num], test_set[:, -1]
@@ -76,28 +84,28 @@ realTrace = realTrace_df.loc[:, 'x':'z'].values
 df_train_x = pd.DataFrame(data=train_x, columns=all_feature_name) # 将训练集转化为datafram格式,作为feature_selector输入
 '''
 fs = FeatureSelector(data = df_train_x, labels = train_y) 
-fs.identify_collinear(correlation_threshold=0.0000005, one_hot=False)
+fs.identify_collinear(correlation_threshold=0.8, one_hot=False)
 fs.identify_zero_importance(task = 'classification', n_iterations = 10, early_stopping = False)
 fs.identify_low_importance(cumulative_importance=0.99)
-selected_training_set = fs.remove(methods = ['zero_importance', 'low_importance']) # 可选'collinear', 'zero_importance', 'low_importance'
+selected_training_set = fs.remove(methods = ['zero_importance']) # 可选'collinear', 'zero_importance', 'low_importance'
 remain_features = list(selected_training_set) # 查看保留的特征
 # removed_features  = fs.check_removal() # 查看移除的特征
 # print(removed_features)
-'''
+
 ### 保存或者加载特征
 #### 保存筛选出的特征
 #save_load_remainFeature("save", save_load_path, remain_features)
-
+'''
 #### 加载筛选出的特征
 remain_features = save_load_remainFeature("load", save_load_path)
+
+
 train_x = df_train_x[remain_features].values # 筛选特征后的训练集
-
-
 df_test_x = pd.DataFrame(data=test_x, columns=all_feature_name) # 将测试集转化为datafram格式
 test_x = df_test_x[remain_features].values # 筛选特征后的测试集
 
 ## SVM分类
-svc = SVC(C=100, kernel="rbf", max_iter=1000)
+svc = SVC(C=300, kernel="rbf", max_iter=1000)
 svc.fit(train_x,train_y)
  
 predictions_svc = svc.predict(test_x)
@@ -143,9 +151,9 @@ X_pdr, Y_pdr, Z_pdr, strides, angle, delt_h = pdr.pdr_position(frequency=freq, w
                         offset = 0,initPosition=(0, 0, 0),\
                         fuse_oritation = False, \
                         predictPattern=predictions_svc, m_WindowWide=window_wide)
-#pdr.show_trace(frequency=freq, walkType='normal', initPosition=(0, 0, 0),\
-#                predictPattern=predictions_svc, m_WindowWide=window_wide,\
-#                real_trace=realTrace)
+pdr.show_trace(frequency=freq, walkType='normal', initPosition=(0, 0, 0),\
+                predictPattern=predictions_svc, m_WindowWide=window_wide,\
+                real_trace=realTrace)
 
 x = np.array(X_pdr).reshape(-1, 1)
 y = np.array(Y_pdr).reshape(-1, 1)
@@ -162,10 +170,10 @@ X_real, Y_real, Z_real = realTrace[:,0], realTrace[:,1], realTrace[:,2]
 X_wifi, Y_wifi, Z_wifi = wifi_predict[:,0], wifi_predict[:,1], wifi_predict[:,2]
 L = strides #步长
 ## 超参数设置
-sigma_wifi = 4.1
-sigma_pdr = .3
+sigma_wifi = 15
+sigma_pdr = 0
 sigma_yaw = 15/360
-sigma_h = .3
+sigma_h = 1
 fusion = fusion.Model()
 theta_counter = -1
 def state_conv(parameters_arr):
@@ -175,8 +183,11 @@ def state_conv(parameters_arr):
     y = parameters_arr[1]
     z = parameters_arr[2]
     theta = parameters_arr[3]
-    return x+L[theta_counter]*np.sin(theta), y+L[theta_counter]*np.cos(theta),\
-             z+delt_h[theta_counter], angle[theta_counter]
+    X = x+L[theta_counter]*np.sin(theta)
+    Y = y+L[theta_counter]*np.cos(theta)
+    Z = z+delt_h[theta_counter]
+    Angle = angle[theta_counter]
+    return X, Y, Z, Angle
 
 # 观测矩阵(zk)，目前不考虑起始点（设定为0，0），因此wifi数组长度比实际位置长度少1
 observation_states = []
@@ -227,7 +238,7 @@ def jacobF_func(i):
                       [0, 0, 0, 0],
                       [0, 0, 0, 1]])
 
-S = fusion.ekf2d(
+S = fusion.ekf3d(
     transition_states = transition_states # 状态矩阵
    ,observation_states = observation_states # 观测数组
    ,transition_func = state_conv # 状态预测函数（传入参数为数组格式，该数组包含了用到的状态转换遇到的数据）
@@ -243,7 +254,7 @@ Y_ekf = []
 Z_ekf = []
 
 for v in S:
-    X_ekf.append(v[0, 0])
+    X_ekf.append(-v[0, 0])
     Y_ekf.append(v[1, 0])
     Z_ekf.append(v[2, 0])
 
@@ -278,5 +289,5 @@ ax.set_ylabel('Y', fontsize=20)
 plt.xticks(fontsize=18) #设置坐标轴刻度大小
 plt.yticks(fontsize=18)
 plt.legend(fontsize = 20)
-plt.show()
+#plt.show()
 #plt.savefig('./Figure/all_location_trace.jpg',format='jpg',bbox_inches = 'tight',dpi=300)
