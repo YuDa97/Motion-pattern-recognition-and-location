@@ -151,9 +151,9 @@ X_pdr, Y_pdr, Z_pdr, strides, angle, delt_h = pdr.pdr_position(frequency=freq, w
                         offset = 0,initPosition=(0, 0, 0),\
                         fuse_oritation = False, \
                         predictPattern=predictions_svc, m_WindowWide=window_wide)
-pdr.show_trace(frequency=freq, walkType='normal', initPosition=(0, 0, 0),\
-                predictPattern=predictions_svc, m_WindowWide=window_wide,\
-                real_trace=realTrace)
+#pdr.show_trace(frequency=freq, walkType='normal', initPosition=(0, 0, 0),\
+#                predictPattern=predictions_svc, m_WindowWide=window_wide,\
+#                real_trace=realTrace)
 
 x = np.array(X_pdr).reshape(-1, 1)
 y = np.array(Y_pdr).reshape(-1, 1)
@@ -170,10 +170,10 @@ X_real, Y_real, Z_real = realTrace[:,0], realTrace[:,1], realTrace[:,2]
 X_wifi, Y_wifi, Z_wifi = wifi_predict[:,0], wifi_predict[:,1], wifi_predict[:,2]
 L = strides #步长
 ## 超参数设置
-sigma_wifi = 15
-sigma_pdr = 0
+sigma_wifi = 100
+sigma_pdr = 0.01
 sigma_yaw = 15/360
-sigma_h = 1
+sigma_h = .1
 fusion = fusion.Model()
 theta_counter = -1
 def state_conv(parameters_arr):
@@ -267,7 +267,7 @@ accuracy = fusion.ave_accuracy(ekf_predict, realTrace)
 
 mean_ekf_error = ave_accuracy(ekf_predict, realTrace)
 print(f'ekf 平均定位误差:{mean_ekf_error} m')
-fusion.show_3D_trace(ekf_predict, real_trace=realTrace)
+#fusion.show_3D_trace(ekf_predict, real_trace=realTrace)
 
 ## 画所有定位轨迹图
 
@@ -289,5 +289,5 @@ ax.set_ylabel('Y', fontsize=20)
 plt.xticks(fontsize=18) #设置坐标轴刻度大小
 plt.yticks(fontsize=18)
 plt.legend(fontsize = 20)
-#plt.show()
+plt.show()
 #plt.savefig('./Figure/all_location_trace.jpg',format='jpg',bbox_inches = 'tight',dpi=300)

@@ -7,6 +7,10 @@ import torch.nn as nn
 from torch.nn import functional as F
 from torch.utils.data import Dataset, DataLoader, TensorDataset
 from torch.autograd import Variable
+import pandas as pd
+from tensorboardX import SummaryWriter    
+
+
 ###############################################################################
 def split_data(dataset, label):
     '''
@@ -21,7 +25,7 @@ def split_data(dataset, label):
     one_step_label = np.zeros((0, 1))
     two_step_dataset = np.zeros((0, row, col))
     two_step_label = np.zeros((0, 1))
-    for i in range(0, s): 
+    for i in range(0, s):
         if label[i] == 0.34:
             one_step_dataset = np.concatenate((one_step_dataset, np.array([dataset[i]])))
             one_step_label = np.concatenate((one_step_label, np.array([[label[i]]])))
@@ -34,9 +38,15 @@ def split_data(dataset, label):
 def cal_mse(pred_y, true_y):
     return np.mean(np.abs(pred_y - true_y))
 
+def cal_std(pred_y, true_y):
+    return np.std(np.abs(pred_y - true_y), ddof=1)
+
+
+
 # 数据准备
-dataPath_down = '/home/yuda/Motion-pattern-recognition/data/SLEdata/down'
-dataPath_up = '/home/yuda/Motion-pattern-recognition/data/SLEdata/up'
+dataPath_down = './data/SLEdata/down'
+dataPath_up = './data/SLEdata/up'
+CNNParameterPath = './code/CNNParameter/net_1conv_10kernels_13KernelSize_100Batch.pkl'
 freq = 25
 ## 下楼
 LD_down = LoadData(dataPath_down, freq)
@@ -98,6 +108,8 @@ if torch.cuda.is_available():
     loss_func = loss_func.cuda()
 # 训练和测试
 ## 训练
+#loos_writer = SummaryWriter('runs/example')
+'''
 for epoch in range(EPOCH):
     for step, (b_x, b_y) in enumerate(train_loader):# 分配 batch data, normalize x when iterate train_loader
         if torch.cuda.is_available():
@@ -108,20 +120,43 @@ for epoch in range(EPOCH):
         optimizer.zero_grad()           # clear gradients for this training step
         loss.backward()                 # backpropagation, compute gradients
         optimizer.step()                # apply gradients
+        #loos_writer.add_scalar("loss", loss.detach(), epoch)
         if step % 50 == 0:
             loss_onCPU = loss.cpu()
             print('Epoch: ', epoch, '| train loss: %.4f' % loss_onCPU.data.numpy())
-
+#loos_writer.close()
+'''
 ## 预测
-#加载训练参数
+###加载训练参数
+if torch.cuda.is_available():
+    cnn.load_state_dict(torch.load(CNNParameterPath))
+else:
+    cnn.load_state_dict(torch.load(CNNParameterPath, map_location='cpu'))
 
 if torch.cuda.is_available():
     X_test = X_test.cuda()
 pred_y = cnn(X_test)
 pred_y = pred_y.cpu().detach().numpy()
 y_test = y_test.detach().numpy()
-SLE_MSE = cal_mse(pred_y, y_test)
-print("平均步长误差为:", SLE_MSE, "m")
+
+##计算指标
+Error = np.abs(pred_y - y_test)
+SLE_mse = cal_mse(pred_y, y_test)
+SLE_std = cal_std(pred_y, y_test)
+Max_error = np.max(Error)
+Min_error = np.min(Error)
+print(f"平均步长误差为:\n{SLE_mse} m")
+print(f"标准差:\n{SLE_std} m")
+print(f"最大误差为:\n{Max_error} m")
+print(f"最小误差为:\n{Min_error} m")
+'''
+#将数据写入excel
+error_df = pd.DataFrame(Error)
+col_name = '13KernelSize'
+error_df.columns = [col_name]
+with pd.ExcelWriter('./runs/CNNParameterTuning/DifferentKernelSize.xlsx', mode='a', if_sheet_exists='replace') as writer:
+    error_df.to_excel(writer, sheet_name=col_name, float_format='%.5f', columns=[col_name])
 
 #保留网络参数
-torch.save(cnn.state_dict(),'/home/yuda/Motion-pattern-recognition/code/CNNParameter/net_2conv_3KernelSize_100Batch.pkl')
+torch.save(cnn.state_dict(),f'./code/CNNParameter/net_1conv_10kernels_{col_name}_100Batch.pkl')
+'''

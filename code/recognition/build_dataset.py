@@ -91,6 +91,9 @@ def anomalies_detect(data, windowWide, showFigure=None):
     return  anomalies_index
     
 def plot_time_serise(raw_data, smo_data, cwtmatr, frequencies, res_acc, data_type):
+    from pylab import mpl
+    plt.rcParams['font.sans-serif'] = ['SimSun']
+    mpl.rcParams['axes.unicode_minus'] = False
     raw_feature_index = {'acc': raw_data[:, 0:3], 'acclin': raw_data[:, 3:6], 
                      'gra': raw_data[:, 6:9], 'gyro': raw_data[:, 9:12],
                      'rv': raw_data[:, 12:-1]}
@@ -102,20 +105,20 @@ def plot_time_serise(raw_data, smo_data, cwtmatr, frequencies, res_acc, data_typ
                 'gra': freq_data[:, 6:9], 'gyro': freq_data[:, 9:12],
                 'rv': freq_data[:, 12:-1]}
     '''
-    config = {
+    #config = {
     #"font.family":'Times New Roman'  # 设置字体类型
     #"font.family":'sans-serif',
     #"font.serif": ['SimSun']
     #     "mathtext.fontset":'stix',
-    }
+    #}
 
     raw_y = raw_feature_index[data_type]
     smo_y = smo_feature_index[data_type]
     # freq_y = freq_feature_index[data_type]
     #rcParams.update(config)
-    plt.rcParams['font.family'] = ['sans-serif']  
-    plt.rcParams['font.sans-serif'] = ['SimSun']  
-    plt.rcParams['axes.unicode_minus'] = False  
+    # plt.rcParams['font.family'] = ['sans-serif']  
+    # plt.rcParams['font.sans-serif'] = ['SimSun']  
+    # plt.rcParams['axes.unicode_minus'] = False  
     plt.figure()
     # 时域图，未平滑
     plt.subplot(2, 1, 1)
