@@ -45,6 +45,10 @@ def ave_accuracy(predictions, labels):
     '''
     计算欧氏距离平均误差
     '''
+    if predictions.shape[0] > labels.shape[0]:
+        predictions = predictions[:labels.shape[0], :]
+    elif predictions.shape[0] < labels.shape[0]:
+        labels = labels[:predictions.shape[0], :]
     accuracy = np.mean((np.sum((predictions - labels)**2, 1))**0.5)*0.6
     return round(accuracy, 3)
 
@@ -53,12 +57,12 @@ def ave_accuracy(predictions, labels):
 train_path = "./data/TrainData"
 supple_train_path = "./data/FuseLocationTestData/" # 将部分连续运动状态下测得的数据用于训练
 supple_train_sets = ["exp1", "exp1.5", "exp2", "exp2.5", "exp3", "exp4", "exp6"] # 使用哪些测试数据补充进训练集
-test_path = './data/FuseLocationTestData/exp5'
-realTrace_path = './data/FuseLocationTestData/test_coordinate.csv'
+test_path = './data/TestData/exp1'
+realTrace_path = './data/TestData/test_coordinate.csv'
 # 保存或加载lgb筛选出的特征
-save_load_path = './code/RemainFeature/lgb_select_feature_for_FuseLocationExp5.xlsx' 
+save_load_path = './code/RemainFeature/lgb_select_feature.xlsx' 
 # 训练好的CNN参数
-CNNParameter_Path = './code/CNNParameter/net_2conv_3KernelSize_100Batch.pkl' 
+CNNParameter_Path = './code/CNNParameter/net_1conv_10kernels_13KernelSize_100Batch.pkl'
 freq = 25 # 数据采样频率是25Hz
 label_coding = {'stand': 0, 'walk': 1, 'up': 2, 'down': 3}
 feature_num = 44
@@ -69,11 +73,12 @@ window_wide = int(1.5 * freq) # 滑动窗口宽度
 ### 读入数据
 train_set, all_feature_name = bd.creat_training_set(train_path, label_coding, startidx, window_wide, training_dimention)
 # 补充训练集数据
+'''
 for dataset in supple_train_sets:
     path = supple_train_path + dataset
     supple_train = bd.creat_testing_set(path, label_coding, startidx, freq, window_wide, training_dimention)
     train_set = np.concatenate((train_set, supple_train), axis=0)
-
+'''
 test_set = bd.creat_testing_set(test_path, label_coding, startidx, freq, window_wide, training_dimention)
 train_x, train_y = train_set[:, 0:feature_num], train_set[:, -1]
 test_x, true_y = test_set[:, 0:feature_num], test_set[:, -1]
@@ -110,7 +115,7 @@ svc.fit(train_x,train_y)
  
 predictions_svc = svc.predict(test_x)
 print('SVM分类报告: \n', metrics.classification_report(true_y, predictions_svc ))
-
+'''
 # wifi定位
 ## 数据准备
 TP_path = "./data/WiFi/TP.csv"
@@ -129,7 +134,7 @@ wifi = wifi.Model(RP_rssi)
 wifi_predict, wifi_accuracy = wifi.wknn_strong_signal_reg(RP_rssi, RP_position, TP_rssi, realTrace)
 #wifi.show_3D_trace(wifi_predict, real_trace=realTrace)
 print(f'WiFi平均定位误差:{wifi_accuracy} m')
-
+'''
 # pdr定位
 ## 数据准备
 walking_data_file = test_path + '/pdr_data.csv'
@@ -151,9 +156,9 @@ X_pdr, Y_pdr, Z_pdr, strides, angle, delt_h = pdr.pdr_position(frequency=freq, w
                         offset = 0,initPosition=(0, 0, 0),\
                         fuse_oritation = False, \
                         predictPattern=predictions_svc, m_WindowWide=window_wide)
-#pdr.show_trace(frequency=freq, walkType='normal', initPosition=(0, 0, 0),\
-#                predictPattern=predictions_svc, m_WindowWide=window_wide,\
-#                real_trace=realTrace)
+pdr.show_trace(frequency=freq, walkType='normal', initPosition=(0, 0, 0),\
+               predictPattern=predictions_svc, m_WindowWide=window_wide,\
+               real_trace=realTrace)
 
 x = np.array(X_pdr).reshape(-1, 1)
 y = np.array(Y_pdr).reshape(-1, 1)
@@ -163,7 +168,7 @@ pdr_predict = np.concatenate((x, y, z), axis=1)
 mean_pdr_error = ave_accuracy(pdr_predict, realTrace)
 
 print(f"PDR平均定位误差:{mean_pdr_error} m")
-
+'''
 # EKF融合定位
 ## 准备数据
 X_real, Y_real, Z_real = realTrace[:,0], realTrace[:,1], realTrace[:,2]
@@ -291,3 +296,4 @@ plt.yticks(fontsize=18)
 plt.legend(fontsize = 20)
 plt.show()
 #plt.savefig('./Figure/all_location_trace.jpg',format='jpg',bbox_inches = 'tight',dpi=300)
+'''

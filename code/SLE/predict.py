@@ -9,8 +9,11 @@ from torch.utils.data import Dataset, DataLoader, TensorDataset
 from torch.autograd import Variable
 import pandas as pd
 from tensorboardX import SummaryWriter    
-
-
+import matplotlib.ticker as mtick
+from matplotlib import rcParams
+from zlib import Z_HUFFMAN_ONLY
+import matplotlib.pyplot as plt
+import seaborn as sns
 ###############################################################################
 def split_data(dataset, label):
     '''
@@ -40,6 +43,7 @@ def cal_mse(pred_y, true_y):
 
 def cal_std(pred_y, true_y):
     return np.std(np.abs(pred_y - true_y), ddof=1)
+
 
 
 
@@ -128,6 +132,7 @@ for epoch in range(EPOCH):
 '''
 ## 预测
 ###加载训练参数
+
 if torch.cuda.is_available():
     cnn.load_state_dict(torch.load(CNNParameterPath))
 else:
@@ -149,14 +154,46 @@ print(f"平均步长误差为:\n{SLE_mse} m")
 print(f"标准差:\n{SLE_std} m")
 print(f"最大误差为:\n{Max_error} m")
 print(f"最小误差为:\n{Min_error} m")
-'''
-#将数据写入excel
-error_df = pd.DataFrame(Error)
-col_name = '13KernelSize'
-error_df.columns = [col_name]
-with pd.ExcelWriter('./runs/CNNParameterTuning/DifferentKernelSize.xlsx', mode='a', if_sheet_exists='replace') as writer:
-    error_df.to_excel(writer, sheet_name=col_name, float_format='%.5f', columns=[col_name])
+
+# #将数据写入excel
+# error_df = pd.DataFrame(Error)
+# col_name = 'CNN'
+# error_df.columns = [col_name]
+# with pd.ExcelWriter('./runs/CNNParameterTuning/ResultCompare.xlsx', mode='a', if_sheet_exists='replace') as writer:
+#     error_df.to_excel(writer, sheet_name=col_name, float_format='%.5f', columns=[col_name])
 
 #保留网络参数
-torch.save(cnn.state_dict(),f'./code/CNNParameter/net_1conv_10kernels_{col_name}_100Batch.pkl')
-'''
+# torch.save(cnn.state_dict(),f'./code/CNNParameter/net_1conv_10kernels_13KernelSize_100Batch_Adam_0.001lr.pkl')
+
+# 画图
+def plot_mse_cdf(Error):
+    config = {
+    "font.family":'Times New Roman',  # 设置字体类型
+    #     "mathtext.fontset":'stix',
+    }
+    rcParams.update(config)
+    plt.figure(figsize=(20,10), dpi=100)
+    plt.xticks(fontsize=25) #设置坐标轴刻度大小
+    plt.yticks(fontsize=25)
+
+    plt.grid(linestyle='-.') 
+    ax=plt.gca()
+
+    # 设置坐标轴的范围
+    plt.xlim(0, 0.4)
+    #plt.ylim(0, 1)
+    ax.xaxis.set_major_formatter(mtick.FormatStrFormatter('%.2f'))#设置横坐标刻度保留2位小数
+    ax.spines['bottom'].set_linewidth(1.2);###设置底部坐标轴的粗细
+    ax.spines['left'].set_linewidth(1.2);####设置左边坐标轴的粗细
+    ax.spines['right'].set_linewidth(1.2);###设置右边坐标轴的粗细
+    ax.spines['top'].set_linewidth(1.2)
+    ax.set_xlabel('MSE(cm)', fontsize=25)#设置横纵坐标标签
+    ax.set_ylabel('Cumulative Probability Distribution ', fontsize=25)
+
+    sns.ecdfplot(Error,linewidth=2)
+
+    plt.legend(fontsize = 20,bbox_to_anchor=(0.85,0.8)) #显示图例，字体为20
+    plt.show()
+    #plt.savefig('./Figure/KernelNumError_cdf.jpg',format='jpg',bbox_inches = 'tight',dpi=300)
+
+#plot_mse_cdf(Error)

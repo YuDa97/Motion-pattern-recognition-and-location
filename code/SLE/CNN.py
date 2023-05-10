@@ -9,9 +9,9 @@ class CNN(nn.Module):
 
         self.conv1 = nn.Sequential(
             
-            nn.Conv1d(in_channels=7, out_channels=10, kernel_size=13, stride=1),  #输入7个通道，15个采样点，7*15，10个大小为1*3的卷积核
+            nn.Conv1d(in_channels=7, out_channels=10, kernel_size=13, stride=1),  #输入7个通道，15个采样点，7*15，10个大小为1*13的卷积核
             nn.ReLU(), #激活函数relu
-            nn.MaxPool1d(kernel_size=2,stride=1),  # 10*13 -> 10*12
+            nn.MaxPool1d(kernel_size=2,stride=1),  # 10*3 -> 10*2
         )
         '''
         self.conv2= nn.Sequential(

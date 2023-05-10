@@ -87,14 +87,14 @@ class Model(object):
         steps
         字典型数组,每个字典保存了峰值位置(index)与该点的合加速度值(acceleration)
         '''
-        offset = 0.5
+        offset = 0.68
         g = 0.96
         a_vertical = self.coordinate_conversion()
         slide = int(frequency * offset) # 滑动窗口长度
     
         # 行人加速度阈值
         min_acceleration = self.min_acc * g 
-        max_acceleration = 8 * g   # 8g
+        max_acceleration = 5 * g   # 8g
         valley_acceleration = -1 #谷值阈值
         valleyWin_scale = 37 # 谷值窗口宽度
         # 峰值间隔(s)
@@ -222,7 +222,7 @@ class Model(object):
     
 
     def pdr_position(self, frequency=25, walkType='normal', \
-                    offset = 0,initPosition=(0, 0, 0), bias = 123 * np.pi/180,\
+                    offset = 0,initPosition=(0, 0, 0), bias = 109* np.pi/180,\
                     fuse_oritation = False, **kw):
         '''
         步行轨迹的每一个相对坐标位置

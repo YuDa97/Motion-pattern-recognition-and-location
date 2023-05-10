@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 from matplotlib import rcParams
 from sklearn import preprocessing
 from scipy import integrate
+from sklearn.model_selection import train_test_split
 
 class LoadData():
     '''
@@ -26,6 +27,9 @@ class LoadData():
         
         # 真实步长
         self.true_length = None
+
+        # 步伐信息
+        self.step_info = None
         
         # 原始数据 加速度计三轴,陀螺仪三轴,重力加速度三轴,真实步长
         self.raw_dataset = np.zeros((0, 10))
@@ -182,7 +186,7 @@ class LoadData():
             for key in dirty_points:
                 del steps[key-counter]
                 counter = counter + 1
-        
+        self.step_info = steps
         return steps 
     
     def build_dataset(self):
@@ -243,6 +247,8 @@ class LoadData():
                 h = np.append(h, delt_h)
         return h
         
+
+
         
         
         
@@ -250,11 +256,10 @@ if __name__ == "__main__":
     '''
     测试代码
     '''
-    dataPath_down = '/home/yuda/Motion-pattern-recognition/data/SLEdata/down'
-    dataPath_up = '/home/yuda/Motion-pattern-recognition/data/SLEdata/up'
+    dataPath_down = './data/SLEdata/down'
+    dataPath_up = './data/SLEdata/up'
     freq = 25
     LD_down = LoadData(dataPath_down, freq)
-    
     dataset_down, label_down = LD_down.build_dataset()
     
     LD_up = LoadData(dataPath_up, freq)
@@ -263,6 +268,7 @@ if __name__ == "__main__":
     dataset_all, label_all = np.concatenate((dataset_down,  dataset_up), axis=0), \
                             np.concatenate((label_down, label_up), axis=0)
     print(dataset_all.shape)
+    
     pre_height = LD_up.get_height()
     real_height = np.array([0.15]*pre_height.shape[0])
     height_mse = np.mean(np.abs(pre_height- real_height))
