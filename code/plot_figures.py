@@ -44,7 +44,7 @@ def plot_cdf(df):
 
     plt.legend(fontsize = 20,bbox_to_anchor=(0.85,0.8)) #显示图例，字体为20
     plt.show()
-    #plt.savefig('./Figure/KernelSizeError_cdf.jpg',format='jpg',bbox_inches = 'tight',dpi=300)
+    #plt.savefig('./Figure/fusion_NSL_Continuous_Compare_cdf.jpg',format='jpg',bbox_inches = 'tight',dpi=300)
 
 def plot_error_curve(df):
     plt.figure(figsize=(20,10), dpi=100)
@@ -104,6 +104,6 @@ def plot_height_curve(df):
     plt.savefig(f'./Figure/Height_compare.jpg',format='jpg',bbox_inches = 'tight',dpi=300)
 
 
-# plot_error_curve(KernelSizeError)
-# plot_cdf(KernelSizeError)
-plot_height_curve(Height_Compare)
+# plot_error_curve(KernelNumError)
+plot_cdf(CNN_NSL_Continuous_Compare)
+# plot_height_curve(Height_Compare)

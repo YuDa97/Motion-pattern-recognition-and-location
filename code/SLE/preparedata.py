@@ -371,14 +371,14 @@ if __name__ == "__main__":
         plt.ylabel('Vertical Acceleration', fontsize=20)
         plt.xticks(fontsize=18) #设置坐标轴刻度大小
         plt.yticks(fontsize=18)
-        plt.show()
-        #plt.savefig('D:/硕士论文/图表/PDR竖直加速度.jpg',format='jpg',bbox_inches = 'tight',dpi=300)
+        #plt.show()
+        plt.savefig('./Figure/down_vertical_acc.jpg',format='jpg',bbox_inches = 'tight',dpi=300)
 
-    '''
+    
     LD_down.read_data()
     LD_down.filter_data()
     a_vertical = LD_down.coordinate_conversion()
     steps = LD_down.step_counter()
     print(len(steps))
-    adjust_steps_detection(a_vertical[0:390], steps[0:20])
-    '''
+    adjust_steps_detection(a_vertical[0:200], steps[0:10])
+    
