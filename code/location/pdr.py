@@ -233,7 +233,7 @@ class Model(object):
             yaw = self.fuse_yaw
         else:
             yaw = self.step_heading()
-        set = 0.5 # 与step_counter函数保持一致
+        set = 0.68 # 与step_counter函数保持一致
         slide = frequency * set
         if 'predictPattern' in kw:
             steps = self.step_counter(frequency=frequency, walkType=walkType, \
@@ -251,7 +251,7 @@ class Model(object):
         position_z.append(z)
         strides = []#记录步长
         angle = [offset]
-        Delt_H = [] #记录高度
+        Delt_H = [0] #记录高度
         nums = len(steps)
         for i in range(nums):
             v = steps[i]

@@ -19,16 +19,16 @@ import time as t
 
 ## 数据准备 
 train_path = "./data/TrainData"
-supple_train_path = "./data/FuseLocationTestData/" # 将部分连续运动状态下测得的数据用于训练
-test_path = "./data/FuseLocationTestData/exp5"
-supple_train_sets = ["exp1", "exp1.5", "exp2", "exp2.5", "exp3", "exp4", "exp6"] # 使用哪些测试数据补充进训练集
+supple_train_path = "./data/TestData/" # 将部分连续运动状态下测得的数据用于训练
+test_path = "./data/TestData/exp2"
+supple_train_sets = ["exp3", "exp4", "exp5"] # 使用哪些测试数据补充进训练集
 
 
 freq = 25 # 数据采样频率是25Hz
 label_coding = {'stand': 0, 'walk': 1, 'up': 2, 'down': 3}
 feature_num = 44
 training_dimention = feature_num + 1
-startidx = 75 # 舍掉前75个点
+startidx = 90 # 舍掉前90个点
 window_wide = int(1.5 * freq) # 滑动窗口宽度
 split_trainingset = False # 是否将训练数据划分为测试集和训练集,不对连续运动状态进行识别
 

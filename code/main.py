@@ -55,8 +55,8 @@ def ave_accuracy(predictions, labels):
 # 运动模式识别部分
 ## 数据准备
 train_path = "./data/TrainData"
-supple_train_path = "./data/FuseLocationTestData/" # 将部分连续运动状态下测得的数据用于训练
-supple_train_sets = ["exp1", "exp1.5", "exp2", "exp2.5", "exp3", "exp4", "exp6"] # 使用哪些测试数据补充进训练集
+supple_train_path = "./data/TestData/" # 将部分连续运动状态下测得的数据用于训练
+supple_train_sets = ["exp2", "exp3", "exp4", "exp5", "exp6_0509"] # 使用哪些测试数据补充进训练集
 test_path = './data/TestData/exp1'
 realTrace_path = './data/TestData/test_coordinate.csv'
 # 保存或加载lgb筛选出的特征
@@ -96,11 +96,11 @@ selected_training_set = fs.remove(methods = ['zero_importance']) # 可选'collin
 remain_features = list(selected_training_set) # 查看保留的特征
 # removed_features  = fs.check_removal() # 查看移除的特征
 # print(removed_features)
-
+'''
 ### 保存或者加载特征
 #### 保存筛选出的特征
 #save_load_remainFeature("save", save_load_path, remain_features)
-'''
+
 #### 加载筛选出的特征
 remain_features = save_load_remainFeature("load", save_load_path)
 
@@ -140,10 +140,10 @@ print(f'WiFi平均定位误差:{wifi_accuracy} m')
 walking_data_file = test_path + '/pdr_data.csv'
 df_walking = pd.read_csv(walking_data_file)
 
-linear = df_walking[[col for col in df_walking.columns if 'linear' in col]].values[startidx:]
-gravity = df_walking[[col for col in df_walking.columns if 'gravity' in col]].values[startidx:]
-rotation = df_walking[[col for col in df_walking.columns if 'rotation' in col]].values[startidx:]
-gyro = df_walking[[col for col in df_walking.columns if 'gyr' in col]].values[startidx:]
+linear = df_walking[[col for col in df_walking.columns if 'linear' in col]].dropna().values[startidx:]
+gravity = df_walking[[col for col in df_walking.columns if 'gravity' in col]].dropna().values[startidx:]
+rotation = df_walking[[col for col in df_walking.columns if 'rotation' in col]].dropna().values[startidx:]
+gyro = df_walking[[col for col in df_walking.columns if 'gyr' in col]].dropna().values[startidx:]
 
 ## 数据平滑
 linear = smooth_data(linear)
@@ -158,7 +158,7 @@ X_pdr, Y_pdr, Z_pdr, strides, angle, delt_h = pdr.pdr_position(frequency=freq, w
                         predictPattern=predictions_svc, m_WindowWide=window_wide)
 pdr.show_trace(frequency=freq, walkType='normal', initPosition=(0, 0, 0),\
                predictPattern=predictions_svc, m_WindowWide=window_wide,\
-               real_trace=realTrace)
+               real_trace=realTrace, offset = 0)
 
 x = np.array(X_pdr).reshape(-1, 1)
 y = np.array(Y_pdr).reshape(-1, 1)
@@ -168,6 +168,17 @@ pdr_predict = np.concatenate((x, y, z), axis=1)
 mean_pdr_error = ave_accuracy(pdr_predict, realTrace)
 
 print(f"PDR平均定位误差:{mean_pdr_error} m")
+
+## 将pdr输出的运动向量保存到excel中
+'''
+sin_theta, cos_theta = [], []
+for num in angle:
+    sin_theta.append(np.sin(num))
+    cos_theta.append(np.cos(num))
+motion_vector = pd.DataFrame({'x': X_pdr, 'y': Y_pdr, 'z': Z_pdr, 'l':strides, \
+                              'sin': sin_theta, 'cos':cos_theta, 'h':delt_h})
+motion_vector.to_excel('./runs/MotionVector/exp1.xlsx', index=False)
+'''
 '''
 # EKF融合定位
 ## 准备数据

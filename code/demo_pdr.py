@@ -36,7 +36,7 @@ pdr = pdr.Model(linear, gravity, rotation, gyro)
 # # Demo1：显示垂直方向合加速度与步伐波峰分布
 # # frequency：数据采集频率
 # # walkType：行走方式（normal为正常走路模式，abnormal为做融合定位实验时走路模式）
-pdr.show_steps(frequency=25, walkType='normal')
+# pdr.show_steps(frequency=25, walkType='normal')
 
 # # Demo2：显示数据在一定范围内的分布情况，用来判断静止数据呈现高斯分布
 # # 传入参数为静止状态x（y或z）轴线性加速度
@@ -54,24 +54,23 @@ pdr.show_steps(frequency=25, walkType='normal')
 # # 返回值steps为字典类型，index为样本序号，acceleration为步伐加速度峰值，v_acceleration为谷值
 steps = pdr.step_counter(frequency=25, walkType='normal')
 print('steps:', len(steps))
-#stride = pdr.step_stride # 步长推算函数实例化
+
 # # 计算步长推算的平均误差
-#accuracy = []
-#for v in steps:
-#    a = v['acceleration']
-#    b = v['v_acceleration']
-    #print(stride(a, b, k=0.37))
-#    accuracy.append(
-#        np.abs(stride(a, b, k=0.37)-0.6)#步长固定是0.6m, k值对结果有较大影响。
-#    )
-#square_sum = 0
-#for v in accuracy:
+length = []
+accuracy = []
+for v in steps:
+    length.append(pdr.step_stride(v, model='NSL'))
+step_length = pd.DataFrame({'NSL':length})
+step_length.to_excel('./runs/ContinuousStepLengthResultCompare.xlsx', index=False)
+# ContinuousStepLengthResultCompare
+# square_sum = 0
+# for v in accuracy:
 #    square_sum += v*v
-#acc_mean = (square_sum/len(steps))**(1/2)
-#print("mean: %f" % acc_mean) # 平均误差 
-#print("min: %f" % np.min(accuracy)) # 最小误差
-#print("max: %f" % np.max(accuracy)) # 最大误差
-#print("sum: %f" % np.sum(accuracy)) # 累积误差
+# acc_mean = (square_sum/len(steps))**(1/2)
+# print("mean: %f" % acc_mean) # 平均误差 
+# print("min: %f" % np.min(accuracy)) # 最小误差
+# print("max: %f" % np.max(accuracy)) # 最大误差
+# print("sum: %f" % np.sum(accuracy)) # 累积误差
 
 # # Demo5：获取每个采样点的航向角
 #theta = pdr.step_heading()[:10]
