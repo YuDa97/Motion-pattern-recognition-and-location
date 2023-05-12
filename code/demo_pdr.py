@@ -56,13 +56,13 @@ steps = pdr.step_counter(frequency=25, walkType='normal')
 print('steps:', len(steps))
 
 # # 计算步长推算的平均误差
-length = []
-accuracy = []
-for v in steps:
-    length.append(pdr.step_stride(v, model='NSL'))
-step_length = pd.DataFrame({'NSL':length})
-step_length.to_excel('./runs/ContinuousStepLengthResultCompare.xlsx', index=False)
-# ContinuousStepLengthResultCompare
+# length = []
+# accuracy = []
+# for v in steps:
+#     length.append(pdr.step_stride(v, model='NSL'))
+# step_length = pd.DataFrame({'NSL':length})
+# step_length.to_excel('./runs/ContinuousStepLengthResultCompare.xlsx', index=False)
+
 # square_sum = 0
 # for v in accuracy:
 #    square_sum += v*v
