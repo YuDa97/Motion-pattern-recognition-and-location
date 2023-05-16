@@ -283,7 +283,9 @@ class Model(object):
                 hypoten_length, delt_h, delt_x = self.step_stride(v, model="CNN", time=t) # 分别斜边长、高度变化、x轴变化
                 hypoten_length = round(hypoten_length/0.6, 2) #变到一个单位
                 delt_h = round(delt_h/0.6, 2) 
-                delt_x = round(delt_x/0.6, 2) 
+                delt_x = round(delt_x/0.6, 2)
+                #length = self.step_stride(v, model="NSL") # 使用NSL模型
+                #delt_x = round(length/0.6, 2)
                 strides.append(delt_x)
                 Delt_H.append(-delt_h)
                 if len(angle) >= 2:
@@ -302,6 +304,8 @@ class Model(object):
                 # 针对./data/FuseLocationTestData/exp5做了高度人为修正
                 if delt_h < 0.2:
                     delt_h = 0.25
+                #length = self.step_stride(v, model="NSL") # 使用NSL模型
+                #delt_x = round(length/0.6, 2)
                 delt_x = round(delt_x/0.6, 2) 
                 strides.append(delt_x)
                 Delt_H.append(delt_h)

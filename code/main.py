@@ -49,8 +49,9 @@ def ave_accuracy(predictions, labels):
         predictions = predictions[:labels.shape[0], :]
     elif predictions.shape[0] < labels.shape[0]:
         labels = labels[:predictions.shape[0], :]
-    accuracy = np.mean((np.sum((predictions - labels)**2, 1))**0.5)*0.6
-    return round(accuracy, 3)
+    error = np.sum((predictions - labels)**2, 1)**0.5*0.6
+    accuracy = np.mean(error)
+    return round(accuracy, 3), error
 
 # 运动模式识别部分
 ## 数据准备
@@ -165,9 +166,13 @@ y = np.array(Y_pdr).reshape(-1, 1)
 z = np.array(Z_pdr).reshape(-1, 1)
 pdr_predict = np.concatenate((x, y, z), axis=1)
 
-mean_pdr_error = ave_accuracy(pdr_predict, realTrace)
+mean_pdr_error, pdr_error = ave_accuracy(pdr_predict, realTrace)
 
 print(f"PDR平均定位误差:{mean_pdr_error} m")
+
+## 将pdr定位结果保存到excel中
+location_results = pd.DataFrame({'x_fusion': X_pdr[:realTrace.shape[0]], 'y_fusion': Y_pdr[:realTrace.shape[0]], 'z_fusion': Z_pdr[:realTrace.shape[0]], 'error_fusion':pdr_error[:realTrace.shape[0]]})
+location_results.to_excel('./runs/LocationResultCompare.xlsx', index=False)
 
 ## 将pdr输出的运动向量保存到excel中
 '''
