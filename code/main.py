@@ -171,8 +171,8 @@ mean_pdr_error, pdr_error = ave_accuracy(pdr_predict, realTrace)
 print(f"PDR平均定位误差:{mean_pdr_error} m")
 
 ## 将pdr定位结果保存到excel中
-location_results = pd.DataFrame({'x_fusion': X_pdr[:realTrace.shape[0]], 'y_fusion': Y_pdr[:realTrace.shape[0]], 'z_fusion': Z_pdr[:realTrace.shape[0]], 'error_fusion':pdr_error[:realTrace.shape[0]]})
-location_results.to_excel('./runs/LocationResultCompare.xlsx', index=False)
+# location_results = pd.DataFrame({'x_NoSelect_NSL': X_pdr[:realTrace.shape[0]], 'y_NoSelect_NSL': Y_pdr[:realTrace.shape[0]], 'z_NoSelect_NSL': Z_pdr[:realTrace.shape[0]], 'error_NoSelect_NSL':pdr_error[:realTrace.shape[0]]})
+# location_results.to_excel('./runs/ResultCompare.xlsx', index=False)
 
 ## 将pdr输出的运动向量保存到excel中
 '''

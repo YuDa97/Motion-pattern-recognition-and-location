@@ -231,7 +231,7 @@ def slide_window(data, wide, label, time_label=None, freq=25, startidx=75):
                     if i+wide-end <= int(wide/2):
                         label_feature = np.append(win_feature, label[part[2]]).reshape(1, -1) # 转换处标签延续上一时刻
                     else:
-                         label_feature = np.append(win_feature, label[next_part[2]]).reshape(1, -1)# 转换处标签延续下一时刻
+                        label_feature = np.append(win_feature, label[next_part[2]]).reshape(1, -1)# 转换处标签延续下一时刻
                     #label_feature = np.append(win_feature, -1).reshape(1, -1) # 如果窗口处于运动状态转换处，标记为-1
                     j += 1
                     
