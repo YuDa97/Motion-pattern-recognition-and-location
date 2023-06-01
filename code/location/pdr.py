@@ -253,6 +253,7 @@ class Model(object):
         angle = [offset]
         Delt_H = [0] #记录高度
         nums = len(steps)
+
         for i in range(nums):
             v = steps[i]
             index = v['index']
@@ -267,12 +268,17 @@ class Model(object):
             angle.append(theta)
             if pattern == 1: # 若为平面行走
                 length = self.step_stride(v, model="NSL")
-                length = round(length/0.6, 2)
-                strides.append(length)
-                Delt_H.append(0)
                 if len(angle) >= 2:
                     if np.abs(angle[-1] - angle[-2])*180/np.pi < 4:
                         angle[-1] = angle[-2]
+                if 'addNoise' in kw and kw['addNoise'] == True:
+                    if 'random_seed' in kw:
+                        np.random.seed(kw['random_seed'])
+                    length += np.random.normal(0, kw['length_sigma'])
+                    angle[-1] += np.random.normal(0, kw['angle_sigma'])
+                length = round(length/0.6, 2)
+                strides.append(length)
+                Delt_H.append(0)
                 x = x + length*np.sin(angle[-1]) 
                 y = y + length*np.cos(angle[-1])
                 position_x.append(x)
@@ -281,6 +287,17 @@ class Model(object):
                 
             elif pattern == 3: # 若为下楼
                 hypoten_length, delt_h, delt_x = self.step_stride(v, model="CNN", time=t) # 分别斜边长、高度变化、x轴变化
+                if len(angle) >= 2:
+                    if np.abs(angle[-1] - angle[-2])*180/np.pi < 4:
+                        angle[-1] = angle[-2]
+
+                if 'addNoise' in kw and kw['addNoise'] == True:
+                    if 'random_seed' in kw:
+                        np.random.seed(kw['random_seed'])
+                    length += np.random.normal(0, kw['length_sigma'])
+                    angle[-1] += np.random.normal(0, kw['angle_sigma'])
+                    delt_h += np.random.normal(0, kw['h_sigma'])
+        
                 hypoten_length = round(hypoten_length/0.6, 2) #变到一个单位
                 delt_h = round(delt_h/0.6, 2) 
                 delt_x = round(delt_x/0.6, 2)
@@ -288,9 +305,6 @@ class Model(object):
                 # delt_x = round(length/0.6, 2)
                 strides.append(delt_x)
                 Delt_H.append(-delt_h)
-                if len(angle) >= 2:
-                    if np.abs(angle[-1] - angle[-2])*180/np.pi < 4:
-                        angle[-1] = angle[-2]
                 x = x + delt_x*np.sin(angle[-1])
                 y = y + delt_x*np.cos(angle[-1])
                 z = z - delt_h
@@ -299,6 +313,16 @@ class Model(object):
                 position_z.append(z)
             elif pattern == 2: # 若为上楼
                 hypoten_length, delt_h, delt_x = self.step_stride(v, model="CNN", time=t)
+                if len(angle) >= 2:
+                    if np.abs(angle[-1] - angle[-2])*180/np.pi < 4:
+                        angle[-1] = angle[-2]
+                if 'addNoise' in kw and kw['addNoise'] == True:
+                    if 'random_seed' in kw:
+                        np.random.seed(kw['random_seed'])
+                    length += np.random.normal(0, kw['length_sigma'])
+                    angle[-1] += np.random.normal(0, kw['angle_sigma'])
+                    delt_h += np.random.normal(0, kw['h_sigma'])
+
                 hypoten_length = round(hypoten_length/0.6, 2) #变到一个单位
                 delt_h = round(delt_h/0.6, 2)
                 # 针对./data/FuseLocationTestData/exp5做了高度人为修正
@@ -309,9 +333,7 @@ class Model(object):
                 delt_x = round(delt_x/0.6, 2) 
                 strides.append(delt_x)
                 Delt_H.append(delt_h)
-                if len(angle) >= 2:
-                    if np.abs(angle[-1] - angle[-2])*180/np.pi < 4:
-                        angle[-1] = angle[-2]
+
                 x = x + delt_x*np.sin(angle[-1])
                 y = y + delt_x*np.cos(angle[-1])
                 z = z + delt_h

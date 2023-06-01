@@ -20,8 +20,8 @@ import time as t
 ## 数据准备 
 train_path = "./data/TrainData"
 supple_train_path = "./data/TestData/" # 将部分连续运动状态下测得的数据用于训练
-test_path = "./data/TestData/exp2"
-supple_train_sets = ["exp3", "exp4", "exp5"] # 使用哪些测试数据补充进训练集
+test_path = "./data/TestData/exp1"
+# supple_train_sets = ["exp3", "exp4", "exp5"] # 使用哪些测试数据补充进训练集
 
 
 freq = 25 # 数据采样频率是25Hz
@@ -30,7 +30,7 @@ feature_num = 44
 training_dimention = feature_num + 1
 startidx = 90 # 舍掉前90个点
 window_wide = int(1.5 * freq) # 滑动窗口宽度
-split_trainingset = False # 是否将训练数据划分为测试集和训练集,不对连续运动状态进行识别
+split_trainingset = True # 是否将训练数据划分为测试集和训练集,不对连续运动状态进行识别
 
 train_set, all_feature_name = bd.creat_training_set(train_path, label_coding, startidx, window_wide, training_dimention)
 if split_trainingset:
@@ -40,10 +40,10 @@ if split_trainingset:
 
 else:
     # 补充训练集数据
-    for dataset in supple_train_sets:
-        path = supple_train_path + dataset
-        supple_train = bd.creat_testing_set(path, label_coding, startidx, freq, window_wide, training_dimention)
-        train_set = np.concatenate((train_set, supple_train), axis=0)
+    # for dataset in supple_train_sets:
+    #     path = supple_train_path + dataset
+    #     supple_train = bd.creat_testing_set(path, label_coding, startidx, freq, window_wide, training_dimention)
+    #     train_set = np.concatenate((train_set, supple_train), axis=0)
 
     test_set = bd.creat_testing_set(test_path, label_coding, startidx, freq, window_wide, training_dimention)
     train_x, train_y = train_set[:, 0:feature_num], train_set[:, -1]
@@ -58,13 +58,13 @@ fs = FeatureSelector(data = df_train_x, labels = train_y)
 
 fs.identify_collinear(correlation_threshold=0.8, one_hot=False)
 fs.identify_zero_importance(task = 'classification', n_iterations = 10, early_stopping = False)
-fs.identify_low_importance(cumulative_importance=0.99)
+fs.identify_low_importance(cumulative_importance=0.8)
 #selected_training_set = fs.remove(methods = ['collinear'])
-selected_training_set = fs.remove(methods = ['zero_importance']) # 可选'collinear', 'zero_importance', 'low_importance'
+selected_training_set = fs.remove(methods = ['zero_importance','low_importance']) # 可选'collinear', 'zero_importance', 'low_importance'
 remain_features = list(selected_training_set) # 查看保留的特征
 # removed_features  = fs.check_removal() # 查看移除的特征
 # print(removed_features)
-fs.plot_feature_importances(plot_n=40, threshold=0.9) # 画出特征重要性排序
+# fs.plot_feature_importances(plot_n=40, threshold=0.9) # 画出特征重要性排序
 train_x = selected_training_set[remain_features].values # 筛选特征后的训练集
 
 
