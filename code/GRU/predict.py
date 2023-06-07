@@ -146,9 +146,9 @@ pdr = pdr.Model(linear, gravity, rotation, gyro, CNNParameterPath=CNNParameter_P
 
 ## 通过添加高斯噪声获取训练数据
 ### 确定添加噪声的标准差
-length_sigma_list = [0.01, 0.02, 0.03, 0.04, 0.05] # 单位m
-angle_sigma_list = [1*np.pi/180, 2*np.pi/180, 3*np.pi/180,4*np.pi/180, 5*np.pi/180] # 单位弧度
-h_sigma_list = [0.01, 0.02, 0.03, 0.04, 0.05] # 单位m
+length_sigma_list = [0.01, 0.1, 0.2, 0.3, 0.4] # 单位m
+angle_sigma_list = [1*np.pi/180, 10*np.pi/180, 15*np.pi/180,20*np.pi/180, 25*np.pi/180] # 单位弧度
+h_sigma_list = [0.01, 0.1, 0.2, 0.3, 0.4] # 单位m
 train_motion_vector = []
 train_realTrace = np.zeros((0,3))
 for i in range(len(length_sigma_list)):
@@ -185,12 +185,12 @@ train_motion_vector = np.array(train_motion_vector)
 train_data, train_label = create_dataset(train_motion_vector, train_realTrace, time_step, 1)
 train_dataset = TensorDataset(train_data, train_label)
 train_loader = DataLoader(dataset=train_dataset,
-                         batch_size=50,
+                         batch_size=80,
                          shuffle=True)
 
 ### 初始化GRU
 LR = 0.01
-EPOCH = 100
+EPOCH = 50
 gru = GRUNet(input_size = 7 , hidden_size = 64, output_size = 3, num_layers = 1, dropout = 0)
 print(gru)
 

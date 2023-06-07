@@ -58,7 +58,7 @@ fs = FeatureSelector(data = df_train_x, labels = train_y)
 
 fs.identify_collinear(correlation_threshold=0.8, one_hot=False)
 fs.identify_zero_importance(task = 'classification', n_iterations = 10, early_stopping = False)
-fs.identify_low_importance(cumulative_importance=0.8)
+fs.identify_low_importance(cumulative_importance=0.99)
 #selected_training_set = fs.remove(methods = ['collinear'])
 selected_training_set = fs.remove(methods = ['zero_importance','low_importance']) # 可选'collinear', 'zero_importance', 'low_importance'
 remain_features = list(selected_training_set) # 查看保留的特征
