@@ -27,7 +27,7 @@ plt.rcParams['font.sans-serif'] = ['Times New Roman']
 plt.rcParams['axes.unicode_minus'] = False
 
 class Model(object):
-    def __init__(self, linear, gravity, rotation, gyro, fuse_yaw=None,CNNParameterPath=None, min_acc=0.6):
+    def __init__(self, linear, gravity, rotation, gyro, fuse_yaw=None,CNNParameterPath=None, min_acc=0.8):
         self.linear = linear
         self.gravity = gravity
         self.rotation = rotation
@@ -94,7 +94,7 @@ class Model(object):
     
         # 行人加速度阈值
         min_acceleration = self.min_acc * g 
-        max_acceleration = 5 * g   # 8g
+        max_acceleration = 5 * g
         valley_acceleration = -1 #谷值阈值
         valleyWin_scale = 37 # 谷值窗口宽度
         # 峰值间隔(s)

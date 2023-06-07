@@ -31,12 +31,12 @@ gravity = smooth_data(gravity)
 rotation = smooth_data(rotation)
 gyro = smooth_data(gyro)
 
-pdr = pdr.Model(linear, gravity, rotation, gyro)
+pdr = pdr.Model(linear, gravity, rotation, gyro, min_acc=0.8)
 
 # # Demo1：显示垂直方向合加速度与步伐波峰分布
 # # frequency：数据采集频率
 # # walkType：行走方式（normal为正常走路模式，abnormal为做融合定位实验时走路模式）
-# pdr.show_steps(frequency=25, walkType='normal')
+# # pdr.show_steps(frequency=25, walkType='normal')
 
 # # Demo2：显示数据在一定范围内的分布情况，用来判断静止数据呈现高斯分布
 # # 传入参数为静止状态x（y或z）轴线性加速度
